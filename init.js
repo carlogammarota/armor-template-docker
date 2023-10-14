@@ -67,7 +67,7 @@ async function init(){
 
   
   // Reemplazar FeathersClient.js
-  fs.copyFile('./FeathersClient.js', 'frontend/src/FeathersClient.js', (err) => {
+  fs.copyFile('./FeathersClient.js', './frontend/src/FeathersClient.js', (err) => {
       if (err) throw err;
       console.log('FeathersClient.js fue reemplazado con éxito');
     });
