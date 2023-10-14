@@ -5,6 +5,8 @@ const { exec } = require("child_process");
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
 const app = express();
 const PORT = 3131;
@@ -13,21 +15,25 @@ const PORT = 3131;
 app.use(bodyParser.json());
 
 async function clonarArchivoDominioDefault(subdomain, port) {
-    const archivoDefault = "default.conf";
-    const nuevoNombre = `${subdomain}.armortemplate.site`;
-    const rutaDestino = `/etc/nginx/sites-enabled/${nuevoNombre}`;
+    try {
+        const archivoDefault = "default.conf";
+        const nuevoNombre = `${subdomain}.armortemplate.site`;
+        const rutaDestino = `/etc/nginx/sites-enabled/${nuevoNombre}`;
 
-    const data = await fs.readFile(archivoDefault, "utf8");
-    const nuevoContenido = data
-      .replace(/default/g, subdomain)
-      .replace(/port/g, port);
+        const data = await fs.readFile(archivoDefault, "utf8");
+        const nuevoContenido = data
+            .replace(/default/g, subdomain)
+            .replace(/port/g, port);
 
-    await fs.writeFile(nuevoNombre, nuevoContenido, "utf8");
-    console.log(`Archivo ${nuevoNombre} creado con éxito.`);
+        await fs.writeFile(nuevoNombre, nuevoContenido, "utf8");
+        console.log(`Archivo ${nuevoNombre} creado con éxito.`);
 
-    await exec(`sudo mv ${nuevoNombre} ${rutaDestino}`);
-    console.log(`Archivo movido a ${rutaDestino} con éxito.`);
-  }
+        await execPromisified(`sudo mv ${nuevoNombre} ${rutaDestino}`);
+        console.log(`Archivo movido a ${rutaDestino} con éxito.`);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
 
   async function recargarNginx() {
     const comando = "sudo systemctl reload nginx";
