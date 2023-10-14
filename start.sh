@@ -14,7 +14,7 @@ clone_or_pull() {
 }
 
 # Clonar o hacer pull en el repositorio template-themefores y cambiarle el nombre a frontend
-clone_or_pull git@github.com:carlogammarota/armor-template-docker.git frontend
+clone_or_pull git@github.com:carlogammarota/template-themefores.git frontend
 
 # Clonar o hacer pull en el repositorio template-themeforest-api y cambiarle el nombre a api
-clone_or_pull git@github.com:carlogammarota/armor-template-docker.git api
+clone_or_pull git@github.com:carlogammarota/template-themeforest-api.git api
