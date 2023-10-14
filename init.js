@@ -84,7 +84,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT){
     // Variable para almacenar el valor de defaultChange
     const terceraVariable = defaultChange;
 
-    await crearSubdominioCloudFlare(defaultChange);
+    // await crearSubdominioCloudFlare(defaultChange);
     // await clonarArchivoDominioDefault(defaultChange, API_PORT);
 
     // await recargarNginx();
