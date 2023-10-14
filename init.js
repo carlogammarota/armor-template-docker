@@ -1,6 +1,6 @@
 const MongoClient = require('mongodb').MongoClient;
 const async = require('async');
-const fs = require('fs');
+const fs = require('fs').promises;
 const { exec } = require('child_process');
 const express = require('express');
 const bodyParser = require('body-parser');
