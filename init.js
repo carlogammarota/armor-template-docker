@@ -97,7 +97,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
     await crearSubdominioCloudFlare(defaultChange);
     console.log(defaultChange, API_PORT);
     // await clonarArchivoDominioDefault(defaultChange, API_PORT);
-    clonarArchivoDominioDefault(defaultChange, API_PORT);
+    clonarArchivoDominioDefault(defaultChange, FRONTEND_PORT);
     await recargarNginx();
 
   // Variable para almacenar el valor de defaultChange
