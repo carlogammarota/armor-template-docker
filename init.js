@@ -12,9 +12,7 @@ const PORT = 3131;
 // Configurar bodyParser para manejar solicitudes JSON
 app.use(bodyParser.json());
 
-// Función para crear la aplicación
-async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
-  async function clonarArchivoDominioDefault(subdomain, port) {
+async function clonarArchivoDominioDefault(subdomain, port) {
     const archivoDefault = "default.conf";
     const nuevoNombre = `${subdomain}.armortemplate.site`;
     const rutaDestino = `/etc/nginx/sites-enabled/${nuevoNombre}`;
@@ -70,6 +68,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
       
       return response.data;
     } catch (error) {
+        res.send("Error al agregar el registro DNS (CloudFlare)");
       // console.error("Error al agregar el registro DNS:", error.errors);
       // return "Error al agregar el registro DNS (CloudFlare)"
       console.log("Error al agregar el registro DNS (CloudFlare)");
@@ -77,12 +76,10 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
     }
   }
 
+// Función para crear la aplicación
+async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
 
-//   await crearSubdominioCloudFlare(subdomain);
 
-//   await clonarArchivoDominioDefault(subdomain, hostPort);
-//   await exec(buildCommand);
-//   await recargarNginx();
 
 try {
     await crearSubdominioCloudFlare(defaultChange);
