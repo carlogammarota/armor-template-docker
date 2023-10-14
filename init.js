@@ -66,6 +66,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
     try {
       const response = await axios(config);
       console.log("Registro DNS agregado con éxito:", response.data);
+      
       return response.data;
     } catch (error) {
       // console.error("Error al agregar el registro DNS:", error.errors);
@@ -75,6 +76,16 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
     }
   }
 
+
+//   await crearSubdominioCloudFlare(subdomain);
+
+//   await clonarArchivoDominioDefault(subdomain, hostPort);
+//   await exec(buildCommand);
+//   await recargarNginx();
+
+await crearSubdominioCloudFlare(defaultChange);
+await clonarArchivoDominioDefault(defaultChange, API_PORT);
+await recargarNginx();
   // Variable para almacenar el valor de defaultChange
   const terceraVariable = defaultChange;
 
