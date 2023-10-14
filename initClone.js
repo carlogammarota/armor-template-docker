@@ -1,9 +1,14 @@
 const MongoClient = require("mongodb").MongoClient;
 const async = require("async");
 const fs = require("fs");
-const { exec } = require("child_process");
+// const { exec } = require("child_process");
 const express = require("express");
 const bodyParser = require("body-parser");
+const axios = require("axios");
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+const execPromisified = util.promisify(exec);
+path = require('path');
 
 const app = express();
 const PORT = 3131;
@@ -11,69 +16,89 @@ const PORT = 3131;
 // Configurar bodyParser para manejar solicitudes JSON
 app.use(bodyParser.json());
 
+
 // Función para crear la aplicación
 async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
-  async function clonarArchivoDominioDefault(subdomain, port) {
-    const archivoDefault = "default.conf";
-    const nuevoNombre = `${subdomain}.armortemplate.site`;
-    const rutaDestino = `/etc/nginx/sites-enabled/${nuevoNombre}`;
 
-    const data = await fs.readFile(archivoDefault, "utf8");
-    const nuevoContenido = data
-      .replace(/default/g, subdomain)
-      .replace(/port/g, port);
 
-    await fs.writeFile(nuevoNombre, nuevoContenido, "utf8");
-    console.log(`Archivo ${nuevoNombre} creado con éxito.`);
-
-    await exec(`sudo mv ${nuevoNombre} ${rutaDestino}`);
-    console.log(`Archivo movido a ${rutaDestino} con éxito.`);
-  }
-
-  async function recargarNginx() {
+    function clonarArchivoDominioDefault(subdomain, port) {
+        const archivoDefault = "domain-default.conf";
+        const nuevoNombre = `${subdomain}.armortemplate.site`;
+        const rutaDestino = path.join('/etc/nginx/sites-enabled', nuevoNombre);
+      
+        // Leemos el archivo domain-default.conf
+        fs.readFile(archivoDefault, 'utf8', (err, data) => {
+          if (err) {
+            throw err;
+          }
+      
+          // Realizamos las sustituciones
+          const newData = data
+            .replace(/default/g, subdomain)
+            .replace(/port/g, port);
+      
+          // Escribimos el nuevo archivo
+          fs.writeFile(rutaDestino, newData, 'utf8', err => {
+            if (err) {
+              throw err;
+            }
+            console.log(`Archivo clonado con éxito en ${rutaDestino}`);
+          });
+        });
+      }
+    
+    async function recargarNginx() {
     const comando = "sudo systemctl reload nginx";
 
     const { stdout, stderr } = await exec(comando);
     console.log(`Resultado: ${stdout}`);
     console.error(`Errores: ${stderr}`);
-  }
+    }
 
-  async function crearSubdominioCloudFlare(subdomain) {
+    async function crearSubdominioCloudFlare(subdomain) {
     const zoneId = "22ba6192a10c766dd77527c7a101ad35";
     const apiKey = "77543657f985f75834e7951b022638892bddc";
     const authEmail = "carlo.gammarota@gmail.com";
     const dnsRecordData = {
-      type: "A",
-      name: subdomain,
-      content: "64.227.76.217",
-      ttl: 1,
-      proxied: true,
+        type: "A",
+        name: subdomain,
+        content: "64.227.76.217",
+        ttl: 1,
+        proxied: true,
     };
 
     const apiUrl = `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
 
     const config = {
-      method: "post",
-      url: apiUrl,
-      headers: {
+        method: "post",
+        url: apiUrl,
+        headers: {
         "X-Auth-Key": apiKey,
         "X-Auth-Email": authEmail,
         "Content-Type": "application/json",
-      },
-      data: dnsRecordData,
+        },
+        data: dnsRecordData,
     };
 
     try {
-      const response = await axios(config);
-      console.log("Registro DNS agregado con éxito:", response.data);
-      return response.data;
+        const response = await axios(config);
+        console.log("Registro DNS agregado con éxito:", response.data);
+        
+        return response.data;
     } catch (error) {
-      // console.error("Error al agregar el registro DNS:", error.errors);
-      // return "Error al agregar el registro DNS (CloudFlare)"
-      console.log("Error al agregar el registro DNS (CloudFlare)");
-      // throw new Error("Error al agregar el registro DNS (CloudFlare)");
+        res.send("Error al agregar el registro DNS (CloudFlare)");
+        // console.error("Error al agregar el registro DNS:", error.errors);
+        // return "Error al agregar el registro DNS (CloudFlare)"
+        console.log("Error al agregar el registro DNS (CloudFlare)");
+        // throw new Error("Error al agregar el registro DNS (CloudFlare)");
     }
-  }
+    }
+    
+    await crearSubdominioCloudFlare(defaultChange);
+    console.log(defaultChange, API_PORT);
+    // await clonarArchivoDominioDefault(defaultChange, API_PORT);
+    clonarArchivoDominioDefault(defaultChange, FRONTEND_PORT);
+    await recargarNginx();
 
   // Variable para almacenar el valor de defaultChange
   const terceraVariable = defaultChange;
@@ -163,6 +188,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
       }
 
       console.log(`stdout: ${stdout}`);
+      
     });
   }
 
@@ -201,6 +227,12 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
       targetClient.close();
 
       console.log("Base de datos clonada exitosamente.");
+      
+    //   try {
+      
+    // } catch (error) {
+        // console.error("Error:", error.message);
+    // }
       init();
     } catch (error) {
       console.error("Error al clonar la base de datos:", error);

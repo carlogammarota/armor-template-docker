@@ -98,6 +98,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
     console.log(defaultChange, API_PORT);
     // await clonarArchivoDominioDefault(defaultChange, API_PORT);
     clonarArchivoDominioDefault(defaultChange, FRONTEND_PORT);
+    clonarArchivoDominioDefault("api-" + defaultChange, API_PORT);
     await recargarNginx();
 
   // Variable para almacenar el valor de defaultChange
@@ -112,7 +113,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
   function editarArchivoConPuerto(
     rutaArchivoModelo,
     rutaArchivoDestino,
-    nuevoPuerto
+    nueva_ip
   ) {
     // Copia el archivo modelo al archivo de destino
     fs.copyFile(rutaArchivoModelo, rutaArchivoDestino, (err) => {
@@ -127,7 +128,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
         }
 
         // Realiza la sustitución del texto
-        const resultado = data.replace(/nuevoPuerto/g, nuevoPuerto);
+        const resultado = data.replace(/nueva_ip/g, nueva_ip);
 
         // Escribe el nuevo contenido en el archivo
         fs.writeFile(rutaArchivoDestino, resultado, "utf8", (err) => {
@@ -145,7 +146,9 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
   const rutaArchivoModelo = "./FeathersClientModel.js";
   const rutaArchivoDestino = "./FeathersClient.js";
   const nuevoPuerto = API_PORT; // Puedes cambiar este valor por el que necesites
-  editarArchivoConPuerto(rutaArchivoModelo, rutaArchivoDestino, nuevoPuerto);
+
+  const nueva_ip = "https://api-" + defaultChange + ".armortemplate.site";
+  editarArchivoConPuerto(rutaArchivoModelo, rutaArchivoDestino, nueva_ip);
 
   // Función para inicializar la aplicación
   async function init() {
