@@ -22,9 +22,10 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
 
     async function clonarArchivoDominioDefault(subdomain, port) {
         try {
-            const archivoDefault = "./domain-default.conf";
+            const archivoDefault = "domain-default.conf";
             const nuevoNombre = `${subdomain}.armortemplate.site`;
-            const rutaDestino = `/etc/nginx/sites-enabled/${nuevoNombre}`;
+            // const rutaDestino = `/etc/nginx/sites-enabled/${nuevoNombre}`;
+            const rutaDestino = `${nuevoNombre}`;
     
             const data = await fs.readFile(archivoDefault, "utf8");
             const nuevoContenido = data
