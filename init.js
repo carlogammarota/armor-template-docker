@@ -7,6 +7,7 @@ const bodyParser = require("body-parser");
 const axios = require("axios");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
+const execPromisified = util.promisify(exec);
 
 const app = express();
 const PORT = 3131;
@@ -25,7 +26,7 @@ async function clonarArchivoDominioDefault(subdomain, port) {
             .replace(/default/g, subdomain)
             .replace(/port/g, port);
 
-        await fs.writeFile(nuevoNombre, nuevoContenido, "utf8");
+        await fs.writeFile(nuevoNombre, nuevoContenido, { encoding: 'utf8' });
         console.log(`Archivo ${nuevoNombre} creado con éxito.`);
 
         await execPromisified(`sudo mv ${nuevoNombre} ${rutaDestino}`);
