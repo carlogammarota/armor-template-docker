@@ -20,27 +20,31 @@ app.use(bodyParser.json());
 async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
 
 
-    async function clonarArchivoDominioDefault(subdomain, port) {
-        try {
-            const archivoDefault = "domain-default.conf";
-            const nuevoNombre = `${subdomain}.armortemplate.site`;
-            // const rutaDestino = `/etc/nginx/sites-enabled/${nuevoNombre}`;
-            const rutaDestino = `${nuevoNombre}`;
-    
-            const data = await fs.readFile(archivoDefault, "utf8");
-            const nuevoContenido = data
-                .replace(/default/g, subdomain)
-                .replace(/port/g, port);
-    
-            await fs.writeFile(nuevoNombre, nuevoContenido, { encoding: 'utf8' });
-            console.log(`Archivo ${nuevoNombre} creado con éxito.`);
-    
-            await execPromisified(`sudo mv ${nuevoNombre} ${rutaDestino}`);
-            console.log(`Archivo movido a ${rutaDestino} con éxito.`);
-        } catch (error) {
-            console.error("Error:", error);
-        }
-    }
+    function clonarArchivoDominioDefault(subdomain, port) {
+        const archivoDefault = "domain-default.conf";
+        const nuevoNombre = `${subdomain}.armortemplate.site`;
+        const rutaDestino = path.join('/etc/nginx/sites-enabled', nuevoNombre);
+      
+        // Leemos el archivo domain-default.conf
+        fs.readFile(archivoDefault, 'utf8', (err, data) => {
+          if (err) {
+            throw err;
+          }
+      
+          // Realizamos las sustituciones
+          const newData = data
+            .replace(/default/g, subdomain)
+            .replace(/port/g, port);
+      
+          // Escribimos el nuevo archivo
+          fs.writeFile(rutaDestino, newData, 'utf8', err => {
+            if (err) {
+              throw err;
+            }
+            console.log(`Archivo clonado con éxito en ${rutaDestino}`);
+          });
+        });
+      }
     
     async function recargarNginx() {
     const comando = "sudo systemctl reload nginx";
@@ -91,7 +95,8 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
     
     await crearSubdominioCloudFlare(defaultChange);
     console.log(defaultChange, API_PORT);
-    await clonarArchivoDominioDefault(defaultChange, API_PORT);
+    // await clonarArchivoDominioDefault(defaultChange, API_PORT);
+    clonarArchivoDominioDefault(defaultChange, API_PORT);
     await recargarNginx();
 
   // Variable para almacenar el valor de defaultChange
