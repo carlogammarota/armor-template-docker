@@ -1,0 +1,25 @@
+version: '1'
+services:
+  api:
+    build:
+      context: ./api
+    ports:
+      - "${API_PORT}:1313"
+    networks:
+      - mynetwork
+    environment: 
+      - VARIABLE_API=valor_variable_api
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "${FRONTEND_PORT}:2222"
+    command: ["node", "server.js"]
+    networks:
+      - mynetwork
+    environment: 
+      - VARIABLE_FRONTEND=valor_variable_frontend
+
+networks:
+  mynetwork:
+    driver: bridge
