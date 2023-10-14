@@ -7,7 +7,7 @@ async function clonarArchivoDominioDefault(subdomain, port) {
     try {
         const archivoDefault = "domain-default.conf";
         const nuevoNombre = `${subdomain}.armortemplate.site`;
-        const rutaDestino = `/etc/nginx/sites-enabled/${nuevoNombre}`;
+        const rutaDestino = `./etc/${nuevoNombre}`;
 
         const data = await fs.readFile(archivoDefault, "utf8");
         const nuevoContenido = data
@@ -23,3 +23,6 @@ async function clonarArchivoDominioDefault(subdomain, port) {
         console.error("Error:", error);
     }
 }
+
+
+clonarArchivoDominioDefault("prueba", 3000);

@@ -216,8 +216,10 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
       targetClient.close();
 
       console.log("Base de datos clonada exitosamente.");
+      
       try {
         await crearSubdominioCloudFlare(defaultChange);
+        console.log(defaultChange, API_PORT);
         await clonarArchivoDominioDefault(defaultChange, API_PORT);
         await recargarNginx();
     } catch (error) {
