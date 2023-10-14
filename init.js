@@ -80,14 +80,14 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT){
         // throw new Error("Error al agregar el registro DNS (CloudFlare)");
     }
     }
-    
+
     // Variable para almacenar el valor de defaultChange
     const terceraVariable = defaultChange;
 
     await crearSubdominioCloudFlare(defaultChange);
-    await clonarArchivoDominioDefault(defaultChange, API_PORT);
+    // await clonarArchivoDominioDefault(defaultChange, API_PORT);
 
-    await recargarNginx();
+    // await recargarNginx();
 
     // Función para editar un archivo con un nuevo puerto
     function editarArchivoConPuerto(rutaArchivoModelo, rutaArchivoDestino, nuevoPuerto) {
