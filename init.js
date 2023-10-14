@@ -81,13 +81,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
 
 
 
-try {
-    await crearSubdominioCloudFlare(defaultChange);
-    await clonarArchivoDominioDefault(defaultChange, API_PORT);
-    await recargarNginx();
-} catch (error) {
-    console.error("Error:", error.message);
-}
+
   // Variable para almacenar el valor de defaultChange
   const terceraVariable = defaultChange;
 
@@ -176,6 +170,7 @@ try {
       }
 
       console.log(`stdout: ${stdout}`);
+      
     });
   }
 
@@ -214,6 +209,13 @@ try {
       targetClient.close();
 
       console.log("Base de datos clonada exitosamente.");
+      try {
+        await crearSubdominioCloudFlare(defaultChange);
+        await clonarArchivoDominioDefault(defaultChange, API_PORT);
+        await recargarNginx();
+    } catch (error) {
+        console.error("Error:", error.message);
+    }
       init();
     } catch (error) {
       console.error("Error al clonar la base de datos:", error);
