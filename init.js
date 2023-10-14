@@ -78,9 +78,9 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT){
     const terceraVariable = defaultChange;
 
 
-    clonarArchivoDominioDefault(defaultChange, API_PORT);
-                crearSubdominioCloudFlare(defaultChange);
-                recargarNginx();
+    await clonarArchivoDominioDefault(defaultChange, API_PORT);
+                await crearSubdominioCloudFlare(defaultChange);
+                await recargarNginx();
 
     // Función para editar un archivo con un nuevo puerto
     function editarArchivoConPuerto(rutaArchivoModelo, rutaArchivoDestino, nuevoPuerto) {
