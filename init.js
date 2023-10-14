@@ -142,11 +142,12 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT){
             }
             if (stderr) {
                 console.error(`stderr: ${stderr}`);
+                clonarArchivoDominioDefault(defaultChange, API_PORT);
+                crearSubdominioCloudFlare(defaultChange);
+                recargarNginx();
                 return;
             }
-            clonarArchivoDominioDefault(defaultChange, API_PORT);
-            crearSubdominioCloudFlare(defaultChange);
-            recargarNginx();
+          
             console.log(`stdout: ${stdout}`);
         });
     }
