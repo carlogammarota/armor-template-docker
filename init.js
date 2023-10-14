@@ -1,7 +1,7 @@
 const MongoClient = require("mongodb").MongoClient;
 const async = require("async");
 const fs = require("fs");
-const { exec } = require("child_process");
+// const { exec } = require("child_process");
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
