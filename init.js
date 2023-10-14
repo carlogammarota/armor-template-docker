@@ -70,7 +70,8 @@ try {
     return response.data;
 } catch (error) {
     // console.error("Error al agregar el registro DNS:", error.errors);
-    throw new Error("Error al agregar el registro DNS (CloudFlare)");
+    return "Error al agregar el registro DNS (CloudFlare)"
+    // throw new Error("Error al agregar el registro DNS (CloudFlare)");
 }
 }
 
