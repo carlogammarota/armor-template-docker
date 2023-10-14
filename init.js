@@ -6,7 +6,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 
 const app = express();
-const PORT = 2025;
+const PORT = 3131;
 
 // Configurar bodyParser para manejar solicitudes JSON
 app.use(bodyParser.json());
