@@ -1,28 +1,29 @@
-const fs = require('fs').promises;
-const util = require('util');
-const { exec } = require('child_process');
-const execPromisified = util.promisify(exec);
+const fs = require('fs');
+function editarYGuardar(serverModeloPath, dominioNuevo, subdominioNuevo) {
+    fs.readFile(serverModeloPath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error al leer el archivo:', err);
+            return;
+        }
 
-async function clonarArchivoDominioDefault(subdomain, port) {
-    try {
-        const archivoDefault = "domain-default.conf";
-        const nuevoNombre = `${subdomain}.armortemplate.site`;
-        const rutaDestino = `./etc/${nuevoNombre}`;
+        // Realizar las sustituciones globales
+        let result = data.replace(/subdominioEdit/g, subdominioNuevo);
+        // let result = data.replace(/dominioEdit/g, dominioNuevo).replace(/subdominioEdit/g, "9999");
 
-        const data = await fs.readFile(archivoDefault, "utf8");
-        const nuevoContenido = data
-            .replace(/default/g, subdomain)
-            .replace(/port/g, port);
-
-        await fs.writeFile(nuevoNombre, nuevoContenido, { encoding: 'utf8' });
-        console.log(`Archivo ${nuevoNombre} creado con éxito.`);
-
-        await execPromisified(`sudo mv ${nuevoNombre} ${rutaDestino}`);
-        console.log(`Archivo movido a ${rutaDestino} con éxito.`);
-    } catch (error) {
-        console.error("Error:", error);
-    }
+        // Guardar el archivo editado
+        fs.writeFile('./frontend/server.js', result, 'utf8', (err) => {
+            if (err) {
+                console.error('Error al escribir el archivo:', err);
+                return;
+            }
+            console.log('Archivo guardado exitosamente.');
+        });
+    });
 }
 
+// Uso de la función
+const serverModeloPath = './serverModelo.js';
+const dominioNuevo = 'nuevoDominio';
+const subdominioNuevo = 'tesla';
 
-clonarArchivoDominioDefault("prueba", 3000);
+editarYGuardar(serverModeloPath, dominioNuevo, subdominioNuevo);
