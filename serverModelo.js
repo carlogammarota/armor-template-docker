@@ -400,7 +400,7 @@ app.get('*', async (req, res) => {
     img: 'https://i.ibb.co/Wn33HgY/meta.jpg',
   };
   try {
-    const settings = await axios.get('https://api.armortemplate.site/settings',{
+    const settings = await axios.get('https://api-subdominioEdit.armortemplate.site/settings',{
       query: {
         $limit: 1,
       },
