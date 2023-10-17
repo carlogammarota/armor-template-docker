@@ -400,17 +400,13 @@ app.get('*', async (req, res) => {
     img: 'https://i.ibb.co/Wn33HgY/meta.jpg',
   };
   try {
-    const settings = await axios.get('https://api-subdominioEdit.armortemplate.site/settings',{
+    const settings = await axios.get('https://api-vuelos.armortemplate.site/settings',{
       query: {
         $limit: 1,
       },
     });
-    // console.log('SSR ALL', metaData.data.data[0]);
-
-    // console.log('SSR ALL', metaData[0]);
-    // console.log('SSR ALL', metaData.data);
     data.title = settings.data.data[0].meta.title;
-    data.content = settings.data.data[0].meta.content;
+    data.content = settings.data.data[0].meta.description;
     data.img = settings.data.data[0].meta.img;
     console.log('SSR ALL', data);
     // const content = textHTML(metaData);
