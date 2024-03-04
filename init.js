@@ -5,10 +5,10 @@ const fs = require("fs");
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
 const execPromisified = util.promisify(exec);
-path = require('path');
+path = require("path");
 
 const app = express();
 const PORT = 3131;
@@ -16,127 +16,131 @@ const PORT = 3131;
 // Configurar bodyParser para manejar solicitudes JSON
 app.use(bodyParser.json());
 
-
 // Función para crear la aplicación
-async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
+async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
+  function clonarArchivoDominioDefault(subdomain, port) {
+    const archivoDefault = "domain-default.conf";
+    const nuevoNombre = `${subdomain}.armortemplate.site`;
+    const rutaDestino = path.join("/etc/nginx/sites-enabled", nuevoNombre);
 
-
-    function clonarArchivoDominioDefault(subdomain, port) {
-        const archivoDefault = "domain-default.conf";
-        const nuevoNombre = `${subdomain}.armortemplate.site`;
-        const rutaDestino = path.join('/etc/nginx/sites-enabled', nuevoNombre);
-      
-        // Leemos el archivo domain-default.conf
-        fs.readFile(archivoDefault, 'utf8', (err, data) => {
-          if (err) {
-            throw err;
-          }
-      
-          // Realizamos las sustituciones
-          const newData = data
-            .replace(/default/g, subdomain)
-            .replace(/port/g, port);
-      
-          // Escribimos el nuevo archivo
-          fs.writeFile(rutaDestino, newData, 'utf8', err => {
-            if (err) {
-              throw err;
-            }
-            console.log(`Archivo clonado con éxito en ${rutaDestino}`);
-          });
-        });
+    // Leemos el archivo domain-default.conf
+    fs.readFile(archivoDefault, "utf8", (err, data) => {
+      if (err) {
+        throw err;
       }
-    
-    async function recargarNginx() {
+      // Realizamos las sustituciones
+      const newData = data
+        .replace(/default/g, subdomain)
+        .replace(/port/g, port);
+
+      // Escribimos el nuevo archivo
+      fs.writeFile(rutaDestino, newData, "utf8", (err) => {
+        if (err) {
+          throw err;
+        }
+        console.log(`Archivo clonado con éxito en ${rutaDestino}`);
+      });
+    });
+  }
+
+  async function recargarNginx() {
     const comando = "sudo systemctl reload nginx";
 
     const { stdout, stderr } = await exec(comando);
     console.log(`Resultado: ${stdout}`);
     console.error(`Errores: ${stderr}`);
-    }
+  }
 
-    async function crearSubdominioCloudFlare(subdomain) {
+  async function crearSubdominioCloudFlare(subdomain) {
     const zoneId = "22ba6192a10c766dd77527c7a101ad35";
     const apiKey = "77543657f985f75834e7951b022638892bddc";
     const authEmail = "carlo.gammarota@gmail.com";
     const dnsRecordData = {
-        type: "A",
-        name: subdomain,
-        content: "64.227.76.217",
-        ttl: 1,
-        proxied: true,
+      type: "A",
+      name: subdomain,
+      content: "64.227.76.217",
+      ttl: 1,
+      proxied: true,
     };
 
     const apiUrl = `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
 
     const config = {
-        method: "post",
-        url: apiUrl,
-        headers: {
+      method: "post",
+      url: apiUrl,
+      headers: {
         "X-Auth-Key": apiKey,
         "X-Auth-Email": authEmail,
         "Content-Type": "application/json",
-        },
-        data: dnsRecordData,
+      },
+      data: dnsRecordData,
     };
 
     try {
-        const response = await axios(config);
-        console.log("Registro DNS agregado con éxito:", response.data);
-        
-        return response.data;
+      const response = await axios(config);
+      console.log("Registro DNS agregado con éxito:", response.data);
+
+      return response.data;
     } catch (error) {
-        res.send("Error al agregar el registro DNS (CloudFlare)");
-        // console.error("Error al agregar el registro DNS:", error.errors);
-        // return "Error al agregar el registro DNS (CloudFlare)"
-        console.log("Error al agregar el registro DNS (CloudFlare)");
-        // throw new Error("Error al agregar el registro DNS (CloudFlare)");
+      res.send("Error al agregar el registro DNS (CloudFlare)");
+      // console.error("Error al agregar el registro DNS:", error.errors);
+      // return "Error al agregar el registro DNS (CloudFlare)"
+      console.log("Error al agregar el registro DNS (CloudFlare)");
+      // throw new Error("Error al agregar el registro DNS (CloudFlare)");
     }
-    }
-    
-    await crearSubdominioCloudFlare(defaultChange);
-    await crearSubdominioCloudFlare("api-" + defaultChange);
-    console.log(defaultChange, API_PORT);
-    // await clonarArchivoDominioDefault(defaultChange, API_PORT);
-    clonarArchivoDominioDefault(defaultChange, FRONTEND_PORT);
-    clonarArchivoDominioDefault("api-" + defaultChange, API_PORT);
-    await recargarNginx();
+  }
 
-  // Variable para almacenar el valor de defaultChange
-  const terceraVariable = defaultChange;
 
-  // await crearSubdominioCloudFlare(defaultChange);
-  // await clonarArchivoDominioDefault(defaultChange, API_PORT);
 
-  // await recargarNginx();
+  //funciona pero comentamos para desarrollo
+
+  /*
+
+  // Crear subdominios en CloudFlare
+  await crearSubdominioCloudFlare(nombreSubdominio);
+  await crearSubdominioCloudFlare("api-" + nombreSubdominio);
+
+  // Clonar archivos de dominio nginx para la configuración de los subdominios
+  clonarArchivoDominioDefault(nombreSubdominio, FRONTEND_PORT);
+  clonarArchivoDominioDefault("api-" + nombreSubdominio, API_PORT);
+
+  // Recargar Nginx para aplicar los cambios
+  await recargarNginx();
+
+  */
+
+
+  // Variable para almacenar el valor de nombreSubdominio
+  const terceraVariable = nombreSubdominio;
+
 
   // Función para editar un archivo con un nuevo puerto
   function editarArchivoConPuerto(
-    rutaArchivoModelo,
-    rutaArchivoDestino,
+    FeathersClientModel,
+    FeathersClient,
     nueva_ip
   ) {
-    // Copia el archivo modelo al archivo de destino
-    fs.copyFile(rutaArchivoModelo, rutaArchivoDestino, (err) => {
+    // Copia el archivo modelo FeathersClientModel.js a FeathersClient.js
+    fs.copyFile(FeathersClientModel, FeathersClient, (err) => {
       if (err) {
         return console.error(`Error al copiar el archivo: ${err}`);
       }
 
-      // Lee el contenido del archivo
-      fs.readFile(rutaArchivoDestino, "utf8", (err, data) => {
+      // Lee el archivo FeathersClient.js
+      fs.readFile(FeathersClient, "utf8", (err, data) => {
         if (err) {
           return console.error(`Error al leer el archivo: ${err}`);
         }
 
-        // Realiza la sustitución del texto
+        // Realiza la sustitución del texto que contiene la ip de la api
         const resultado = data.replace(/nueva_ip/g, nueva_ip);
 
-        // Escribe el nuevo contenido en el archivo
-        fs.writeFile(rutaArchivoDestino, resultado, "utf8", (err) => {
+        // Escribe el nuevo contenido en el archivo FeathersClient.js
+        fs.writeFile(FeathersClient, resultado, "utf8", (err) => {
           if (err)
             return console.error(`Error al escribir en el archivo: ${err}`);
           console.log(
-            `Se ha actualizado el puerto en ${rutaArchivoDestino} a ${nuevoPuerto}`
+            `Se ha actualizado el puerto en ${FeathersClient} a ${nuevoPuerto}`
           );
         });
       });
@@ -144,53 +148,61 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
   }
 
   // Ejemplo de uso de la función de edición de archivos con puerto
-  const rutaArchivoModelo = "./FeathersClientModel.js";
-  const rutaArchivoDestino = "./FeathersClient.js";
+  const FeathersClientModel = "./FeathersClientModel.js";
+  const FeathersClient = "./FeathersClient.js";
   const nuevoPuerto = API_PORT; // Puedes cambiar este valor por el que necesites
 
+  function editarYGuardar(serverModeloPath, subdominioNuevo) {
+    fs.readFile(serverModeloPath, "utf8", (err, data) => {
+      if (err) {
+        console.error("Error al leer el archivo:", err);
+        return;
+      }
 
+      // Realizar las sustituciones globales
+      let result = data.replace(/subdominioEdit/g, subdominioNuevo);
+      // let result = data.replace(/dominioEdit/g, dominioNuevo).replace(/subdominioEdit/g, "9999");
 
-
-  function editarYGuardar(serverModeloPath, dominioNuevo, subdominioNuevo) {
-    fs.readFile(serverModeloPath, 'utf8', (err, data) => {
+      // Guardar el archivo editado
+      fs.writeFile("./frontend/server.js", result, "utf8", (err) => {
         if (err) {
-            console.error('Error al leer el archivo:', err);
-            return;
+          console.error("Error al escribir el archivo:", err);
+          return;
         }
-
-        // Realizar las sustituciones globales
-        let result = data.replace(/subdominioEdit/g, subdominioNuevo);
-        // let result = data.replace(/dominioEdit/g, dominioNuevo).replace(/subdominioEdit/g, "9999");
-
-        // Guardar el archivo editado
-        fs.writeFile('./frontend/server.js', result, 'utf8', (err) => {
-            if (err) {
-                console.error('Error al escribir el archivo:', err);
-                return;
-            }
-            console.log('Archivo guardado exitosamente.');
-        });
+        console.log("Archivo guardado exitosamente.");
+      });
     });
-}
+  }
 
-// Uso de la función
-const serverModeloPath = './serverModelo.js';
-const dominioNuevo = 'nuevoDominio';
-const subdominioNuevo = 'tesla';
-
-editarYGuardar(serverModeloPath, dominioNuevo, defaultChange);
+  // Uso de la función
+  const serverModeloPath = "./serverModelo.js";
+  //guardar el archivo server.js para el front con el subdominio de api nuevo para metatags y otros. 
+  editarYGuardar(serverModeloPath, nombreSubdominio);
 
 
+  //produccion
+  // const nueva_ip = "https://api-" + nombreSubdominio + ".armortemplate.site";
 
-  const nueva_ip = "https://api-" + defaultChange + ".armortemplate.site";
-  editarArchivoConPuerto(rutaArchivoModelo, rutaArchivoDestino, nueva_ip);
+
+  //desarrollo
+  const nueva_ip = "http://192.168.1.4:" + API_PORT;
+
+
+  editarArchivoConPuerto(FeathersClientModel, FeathersClient, nueva_ip);
 
   // Función para inicializar la aplicación
   async function init() {
     // Editar default.json
+
+    //default.json es la configuracion para la feathers que va en ./config/default.json
     fs.readFile("default.json", "utf8", (err, data) => {
       if (err) throw err;
-      const result = data.replace("defaultChange", defaultChange);
+
+      //remplaza el nombreSubdominio por el nombre del subdominio
+      //es para la configuracion de feathers con mongodb
+      const result = data.replace("nombreSubdominio", nombreSubdominio);
+
+      //guardamos el archivo despues de la edicion
       fs.writeFile("./api/config/default.json", result, "utf8", (err) => {
         if (err) throw err;
       });
@@ -214,6 +226,7 @@ editarYGuardar(serverModeloPath, dominioNuevo, defaultChange);
     });
 
     // Levantar contenedores con docker-compose
+    // docker-compose -p probando222 up --force-recreate -d
     const command = `docker-compose -p ${terceraVariable} up --force-recreate -d`;
     exec(command, (error, stdout, stderr) => {
       if (error) {
@@ -226,8 +239,9 @@ editarYGuardar(serverModeloPath, dominioNuevo, defaultChange);
       }
 
       console.log(`stdout: ${stdout}`);
-      
     });
+
+    console.log("Aplicación inicializada exitosamente.");
   }
 
   // Función para clonar la base de datos
@@ -236,8 +250,8 @@ editarYGuardar(serverModeloPath, dominioNuevo, defaultChange);
     const sourceUri =
       "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
     const targetUri =
-      "mongodb://example_username:example_password@64.227.76.217:27017/" +
-      defaultChange +
+      "mongodb://example_username:example_password@192.168.1.4:27017/" +
+      nombreSubdominio +
       "?authSource=admin"; // Cambia esta URI según tu configuración
 
     try {
@@ -265,17 +279,22 @@ editarYGuardar(serverModeloPath, dominioNuevo, defaultChange);
       targetClient.close();
 
       console.log("Base de datos clonada exitosamente.");
-      
-    //   try {
-      
-    // } catch (error) {
-        // console.error("Error:", error.message);
-    // }
+
+      //   try {
+
+      // } catch (error) {
+      // console.error("Error:", error.message);
+      // }
+
+      //con init iniciamos el proseso de crear las imagenes necesarias y levantar los contenedores.
       init();
     } catch (error) {
       console.error("Error al clonar la base de datos:", error);
     }
   }
+
+
+  // init();
 
   // Ejecutar la función para clonar la base de datos
   cloneDatabase();
@@ -284,9 +303,11 @@ editarYGuardar(serverModeloPath, dominioNuevo, defaultChange);
 // Manejar la solicitud POST en la ruta '/datos'
 app.post("/create-app", (req, res) => {
   console.log("Se recibió un JSON:", req.body);
-  createApp(req.body.subdomain, req.body.api_port, req.body.frontend_port);
+  // createApp(req.body.subdomain, req.body.api_port, req.body.frontend_port);
   res.send("Creando Aplicacion");
 });
+
+createApp("capillaconecta2024", 1001, 2001);
 
 // Iniciar el servidor
 app.listen(PORT, () => {

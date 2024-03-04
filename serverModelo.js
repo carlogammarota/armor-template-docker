@@ -399,20 +399,22 @@ app.get('*', async (req, res) => {
       'Unlock the full potential of web development with Armor CMS + API. Our powerful all-in-one solution combines a robust Content Management System (CMS) with a flexible Application Programming Interface (API). Build, customize, and manage web applications with ease. Try our beta version and be part of the future of web development.',
     img: 'https://i.ibb.co/Wn33HgY/meta.jpg',
   };
-  try {
-    const settings = await axios.get('https://api-subdominioEdit.armortemplate.site/settings',{
-      query: {
-        $limit: 1,
-      },
-    });
-    data.title = settings.data.data[0].meta.title;
-    data.content = settings.data.data[0].meta.description;
-    data.img = settings.data.data[0].meta.img;
-    console.log('SSR ALL', data);
-    // const content = textHTML(metaData);
-  } catch (error) {
-    console.error(error);
-  }
+
+  //comento para desarrollo porque esta api no esta levantada
+  // try {
+  //   const settings = await axios.get('https://api-nombreSubdominio.armortemplate.site/settings',{
+  //     query: {
+  //       $limit: 1,
+  //     },
+  //   });
+  //   data.title = settings.data.data[0].meta.title;
+  //   data.content = settings.data.data[0].meta.description;
+  //   data.img = settings.data.data[0].meta.img;
+  //   console.log('SSR ALL', data);
+  //   // const content = textHTML(metaData);
+  // } catch (error) {
+  //   console.error(error);
+  // }
   const metaTags = `
         <!-- HTML Meta Tags -->
         <title>${data.title}</title>

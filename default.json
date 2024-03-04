@@ -28,6 +28,6 @@
       "passwordField": "password"
     }
   },
-  "mongodb": "mongodb://example_username:example_password@64.227.76.217:27017/defaultChange?authSource=admin"
+  "mongodb": "mongodb://example_username:example_password@192.168.1.4:27017/nombreSubdominio?authSource=admin"
   
 }

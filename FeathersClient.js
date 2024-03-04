@@ -5,10 +5,10 @@ import rest from '@feathersjs/rest-client';
 const appRest = feathers();
 
 // Connect to a different URL
-let restClient = rest('http://192.168.1.3:1313');
+let restClient = rest('');
 
 
-restClient = rest('http://localhost:1313');
+restClient = rest('http://192.168.1.4:1001');
 
 
 // Configure an AJAX library (see below) with that client

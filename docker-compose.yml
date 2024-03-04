@@ -3,23 +3,27 @@ services:
   api:
     build:
       context: ./api
+      dockerfile: Dockerfile
     ports:
       - "${API_PORT}:1313"
+      - "1500:22"  # Exponer el puerto SSH
     networks:
       - mynetwork
     environment: 
       - VARIABLE_API=valor_variable_api
+
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "${FRONTEND_PORT}:2222"
-    command: ["node", "server.js"]
+      - "2222:22"  # Exponer el puerto SSH
     networks:
       - mynetwork
     environment: 
       - VARIABLE_FRONTEND=valor_variable_frontend
-
+      
 networks:
   mynetwork:
     driver: bridge

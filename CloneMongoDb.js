@@ -5,7 +5,7 @@ const async = require('async');
 
 // Configuración de las conexiones
 const sourceUri = 'mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003';
-const targetUri = 'mongodb://example_username:example_password@64.227.76.217:27017/template?authSource=admin'; // Cambia esta URI según tu configuración
+const targetUri = 'mongodb://example_username:example_password@192.168.0.112:27017/template?authSource=admin'; // Cambia esta URI según tu configuración
 
 
 async function cloneDatabase() {
