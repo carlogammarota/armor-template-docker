@@ -6,7 +6,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${API_PORT}:1313"
-      - "1500:22"  # Exponer el puerto SSH
     networks:
       - mynetwork
     environment: 
@@ -18,7 +17,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${FRONTEND_PORT}:2222"
-      - "2222:22"  # Exponer el puerto SSH
     networks:
       - mynetwork
     environment: 
