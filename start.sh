@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# borrar primero las carpetas si existen
+rm -rf frontend
+rm -rf api
+
+
+
 # Función para clonar o realizar pull dependiendo de la existencia del directorio
 clone_or_pull() {
     if [ -d "$2" ]; then
