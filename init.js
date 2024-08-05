@@ -109,10 +109,8 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
 
   */
 
-
   // Variable para almacenar el valor de nombreSubdominio
   const terceraVariable = nombreSubdominio;
-
 
   // Función para editar un archivo con un nuevo puerto
   function editarArchivoConPuerto(
@@ -226,8 +224,10 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
     });
 
     // Levantar contenedores con docker-compose
+    //para mac > docker compose
+    //para linux > docker-compose
     // docker-compose -p probando222 up --force-recreate -d
-    const command = `docker-compose -p ${terceraVariable} up --force-recreate -d`;
+    const command = `docker compose -p ${terceraVariable} up --force-recreate -d`;
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error: ${error.message}`);
@@ -250,7 +250,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
     const sourceUri =
       "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
     const targetUri =
-      "mongodb://example_username:example_password@192.168.1.4:27017/" +
+      "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/" +
       nombreSubdominio +
       "?authSource=admin"; // Cambia esta URI según tu configuración
 
@@ -268,11 +268,56 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
 
       // Clonar cada colección de la base de datos de origen a la de destino
       await async.eachSeries(collections, async (collection) => {
+
+        //no clonar servicio /applications
+        if (collection.name === "applications") {
+          return;
+        }
+
+        //no clonar ports
+        if (collection.name === "ports") {
+          return;
+        }
+
         const sourceCollection = sourceDb.collection(collection.name);
         const targetCollection = targetDb.collection(collection.name);
         const documents = await sourceCollection.find({}).toArray();
         await targetCollection.insertMany(documents);
       });
+
+
+
+      const data_desarrollo = {
+        "subdomain": "tesla",
+        "logo": "https://cdn.worldvectorlogo.com/logos/tesla-motors.svg", //svg
+        "title": "Sitio Web de Tesla Motors",
+        "description":"Introducing Armor Template, a robust and feature-rich web theme that combines the power of modern technologies to kickstart your next online project. Crafted with Vue3, Vuex, Tailwind CSS, Express.js (SSR), Node.js, and Socket.io, Feathers.js (rest) this versatile template offers everything you need to create a dynamic web presence.",
+        "theme": "dark",
+        "plugins": ["mercadopago", "paypal", "strapi"],
+        "user": {}
+
+      }
+
+      //editar servicio "settings[0]" en titulo y descripcion
+      const settings = targetDb.collection("settings");
+
+      const update = await settings.updateOne(
+        { _id: "652dbaaaf522ff35aa9c932a" },
+        {
+          $set: {
+            data: data_desarrollo,
+          },
+        }
+      );  
+
+      console.log("settings actualizado:", update);
+
+
+      
+
+
+
+
 
       // Cerrar conexiones
       sourceClient.close();
@@ -294,11 +339,16 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
   }
 
 
+
+
   // init();
 
   // Ejecutar la función para clonar la base de datos
   cloneDatabase();
 }
+
+
+createApp("gorras", 1003, 2003);
 
 // Manejar la solicitud POST en la ruta '/datos'
 app.post("/create-app", (req, res) => {
@@ -307,7 +357,7 @@ app.post("/create-app", (req, res) => {
   res.send("Creando Aplicacion");
 });
 
-createApp("capillaconecta2024", 1001, 2001);
+// createApp("capillaconecta2024", 1001, 2001);
 
 // Iniciar el servidor
 app.listen(PORT, () => {

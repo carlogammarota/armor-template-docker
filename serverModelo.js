@@ -116,12 +116,17 @@ function textHTML(html) {
   return texto;
 }
 
+// const subDominioString = subdominioEdit.toString();
+const urlApi = 'https://' + 'subdominioEdit' + '.armortemplate.site';
+
+
 //ssr de site products
 app.get('/products/:id_product', async (req, res) => {
   let data = {};
   try {
     const response = await axios.get(
-      `https://api.armortemplate.site/products/${req.params.id_product}`,
+      // `https://api.armortemplate.site/products/${req.params.id_product}`,
+      urlApi + '/products/' + req.params.id_product,
     );
     console.log('SSR PRODUCTS', response.data.metaData);
     data = response.data.metaData;
@@ -148,7 +153,7 @@ app.get('/products/:id_product', async (req, res) => {
   <meta itemprop="image" content="${data.img}">
 
   <!-- Facebook Meta Tags -->
-  <meta property="og:url" content="https://armortemplate.site/products/${req.params.id_product}">
+  <meta property="og:url" content="${urlApi}/products/${req.params.id_product}">
   <meta property="og:type" content="website">
   <meta property="og:title" content="${data.title}">
   <meta property="og:description" content="${data.content}">

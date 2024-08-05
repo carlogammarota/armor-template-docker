@@ -8,7 +8,7 @@ const appRest = feathers();
 let restClient = rest('');
 
 
-restClient = rest('http://192.168.1.4:1001');
+restClient = rest('http://192.168.1.4:1003');
 
 
 // Configure an AJAX library (see below) with that client
