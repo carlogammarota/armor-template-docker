@@ -1,14 +1,26 @@
+/*
+ * Script creado por Carlo Gammarota.
+ * Este script se utiliza para crear una aplicación, gestionar subdominios en CloudFlare, 
+ * clonar archivos de configuración de Nginx, manipular archivos con fs, y manejar bases de datos en MongoDB.
+ */
+
 const MongoClient = require("mongodb").MongoClient;
 const async = require("async");
 const fs = require("fs");
-// const { exec } = require("child_process");
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
-const execPromisified = util.promisify(exec);
-path = require("path");
+const path = require("path");
+const Docker = require('dockerode');
+//importar editCollection con objeto
+const { editCollection } = require('./editMongoDb.js');
+
+// Promisificar funciones de fs
+const readFile = util.promisify(fs.readFile);
+const writeFile = util.promisify(fs.writeFile);
+const copyFile = util.promisify(fs.copyFile);
 
 const app = express();
 const PORT = 3131;
@@ -17,23 +29,22 @@ const PORT = 3131;
 app.use(bodyParser.json());
 
 // Función para crear la aplicación
-async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
+async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
+
+  // Función para clonar el archivo de configuración de dominio por defecto
   function clonarArchivoDominioDefault(subdomain, port) {
     const archivoDefault = "domain-default.conf";
     const nuevoNombre = `${subdomain}.armortemplate.site`;
     const rutaDestino = path.join("/etc/nginx/sites-enabled", nuevoNombre);
 
-    // Leemos el archivo domain-default.conf
     fs.readFile(archivoDefault, "utf8", (err, data) => {
       if (err) {
         throw err;
       }
-      // Realizamos las sustituciones
       const newData = data
         .replace(/default/g, subdomain)
         .replace(/port/g, port);
 
-      // Escribimos el nuevo archivo
       fs.writeFile(rutaDestino, newData, "utf8", (err) => {
         if (err) {
           throw err;
@@ -43,14 +54,15 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
     });
   }
 
+  // Función para recargar Nginx
   async function recargarNginx() {
     const comando = "sudo systemctl reload nginx";
-
     const { stdout, stderr } = await exec(comando);
     console.log(`Resultado: ${stdout}`);
     console.error(`Errores: ${stderr}`);
   }
 
+  // Función para crear un subdominio en CloudFlare
   async function crearSubdominioCloudFlare(subdomain) {
     const zoneId = "22ba6192a10c766dd77527c7a101ad35";
     const apiKey = "77543657f985f75834e7951b022638892bddc";
@@ -58,13 +70,12 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
     const dnsRecordData = {
       type: "A",
       name: subdomain,
-      content: "64.227.76.217",
+      content: "181.110.131.81",
       ttl: 1,
       proxied: true,
     };
 
     const apiUrl = `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
-
     const config = {
       method: "post",
       url: apiUrl,
@@ -79,77 +90,51 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
     try {
       const response = await axios(config);
       console.log("Registro DNS agregado con éxito:", response.data);
-
       return response.data;
     } catch (error) {
-      res.send("Error al agregar el registro DNS (CloudFlare)");
-      // console.error("Error al agregar el registro DNS:", error.errors);
-      // return "Error al agregar el registro DNS (CloudFlare)"
       console.log("Error al agregar el registro DNS (CloudFlare)");
-      // throw new Error("Error al agregar el registro DNS (CloudFlare)");
     }
   }
 
-
-
-  //funciona pero comentamos para desarrollo
-
-  /*
-
-  // Crear subdominios en CloudFlare
+  // Crear subdominios y clonar archivos de configuración
   await crearSubdominioCloudFlare(nombreSubdominio);
   await crearSubdominioCloudFlare("api-" + nombreSubdominio);
 
-  // Clonar archivos de dominio nginx para la configuración de los subdominios
   clonarArchivoDominioDefault(nombreSubdominio, FRONTEND_PORT);
   clonarArchivoDominioDefault("api-" + nombreSubdominio, API_PORT);
 
-  // Recargar Nginx para aplicar los cambios
   await recargarNginx();
-
-  */
 
   // Variable para almacenar el valor de nombreSubdominio
   const terceraVariable = nombreSubdominio;
 
   // Función para editar un archivo con un nuevo puerto
-  function editarArchivoConPuerto(
-    FeathersClientModel,
-    FeathersClient,
-    nueva_ip
-  ) {
-    // Copia el archivo modelo FeathersClientModel.js a FeathersClient.js
+  function editarArchivoConPuerto(FeathersClientModel, FeathersClient, nueva_ip) {
     fs.copyFile(FeathersClientModel, FeathersClient, (err) => {
       if (err) {
         return console.error(`Error al copiar el archivo: ${err}`);
       }
 
-      // Lee el archivo FeathersClient.js
       fs.readFile(FeathersClient, "utf8", (err, data) => {
         if (err) {
           return console.error(`Error al leer el archivo: ${err}`);
         }
 
-        // Realiza la sustitución del texto que contiene la ip de la api
         const resultado = data.replace(/nueva_ip/g, nueva_ip);
 
-        // Escribe el nuevo contenido en el archivo FeathersClient.js
         fs.writeFile(FeathersClient, resultado, "utf8", (err) => {
-          if (err)
-            return console.error(`Error al escribir en el archivo: ${err}`);
-          console.log(
-            `Se ha actualizado el puerto en ${FeathersClient} a ${nuevoPuerto}`
-          );
+          if (err) return console.error(`Error al escribir en el archivo: ${err}`);
+          console.log(`Se ha actualizado la IP en ${FeathersClient}`);
         });
       });
     });
   }
 
-  // Ejemplo de uso de la función de edición de archivos con puerto
-  const FeathersClientModel = "./FeathersClientModel.js";
-  const FeathersClient = "./FeathersClient.js";
-  const nuevoPuerto = API_PORT; // Puedes cambiar este valor por el que necesites
+  //necesito una funcion que me permita editar el archivo server.js
 
+  
+
+  // Función para editar y guardar archivos
   function editarYGuardar(serverModeloPath, subdominioNuevo) {
     fs.readFile(serverModeloPath, "utf8", (err, data) => {
       if (err) {
@@ -157,11 +142,8 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
         return;
       }
 
-      // Realizar las sustituciones globales
       let result = data.replace(/subdominioEdit/g, subdominioNuevo);
-      // let result = data.replace(/dominioEdit/g, dominioNuevo).replace(/subdominioEdit/g, "9999");
 
-      // Guardar el archivo editado
       fs.writeFile("./frontend/server.js", result, "utf8", (err) => {
         if (err) {
           console.error("Error al escribir el archivo:", err);
@@ -172,110 +154,75 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
     });
   }
 
-  // Uso de la función
   const serverModeloPath = "./serverModelo.js";
-  //guardar el archivo server.js para el front con el subdominio de api nuevo para metatags y otros. 
   editarYGuardar(serverModeloPath, nombreSubdominio);
 
-
+  //const nueva_ip = "http://192.168.1.4:" + API_PORT;
   //produccion
-  // const nueva_ip = "https://api-" + nombreSubdominio + ".armortemplate.site";
 
+  const nueva_ip = "https://api-" + nombreSubdominio + ".armortemplate.site";
 
-  //desarrollo
-  const nueva_ip = "http://192.168.1.4:" + API_PORT;
+  editarArchivoConPuerto("./FeathersClientModel.js", "./FeathersClient.js", nueva_ip);
 
-
-  editarArchivoConPuerto(FeathersClientModel, FeathersClient, nueva_ip);
+  // Crear instancia de Docker
+  const docker = new Docker();
 
   // Función para inicializar la aplicación
   async function init() {
-    // Editar default.json
-
-    //default.json es la configuracion para la feathers que va en ./config/default.json
-    fs.readFile("default.json", "utf8", (err, data) => {
-      if (err) throw err;
-
-      //remplaza el nombreSubdominio por el nombre del subdominio
-      //es para la configuracion de feathers con mongodb
+    try {
+      let data = await readFile(path.join(__dirname, 'default.json'), 'utf8');
       const result = data.replace("nombreSubdominio", nombreSubdominio);
+      await writeFile(path.join(__dirname, './api/config/default.json'), result, 'utf8');
 
-      //guardamos el archivo despues de la edicion
-      fs.writeFile("./api/config/default.json", result, "utf8", (err) => {
-        if (err) throw err;
+      await copyFile(
+        path.join(__dirname, './FeathersClient.js'),
+        path.join(__dirname, './frontend/src/FeathersClient.js')
+      );
+      console.log("FeathersClient.js fue reemplazado con éxito");
+
+      const envData = `API_PORT=${API_PORT}\nFRONTEND_PORT=${FRONTEND_PORT}`;
+      await writeFile(path.join(__dirname, '.env'), envData, 'utf8');
+      console.log(".env fue creado con éxito");
+
+      const command = `docker compose -p ${terceraVariable} up --force-recreate -d`;
+      await execComposeCommand(command);
+
+      console.log("Aplicación inicializada exitosamente.");
+    } catch (error) {
+      console.error(`Error durante la inicialización: ${error.message}`);
+    }
+  }
+
+  async function execComposeCommand(command) {
+    return new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          return reject(new Error(`exec error: ${error.message}`));
+        }
+        if (stderr) {
+          console.error(`stderr: ${stderr}`);
+        }
+        console.log(`stdout: ${stdout}`);
+        resolve();
       });
     });
-
-    // Reemplazar FeathersClient.js
-    fs.copyFile(
-      "./FeathersClient.js",
-      "./frontend/src/FeathersClient.js",
-      (err) => {
-        if (err) throw err;
-        console.log("FeathersClient.js fue reemplazado con éxito");
-      }
-    );
-
-    // Crear .env
-    const envData = `API_PORT=${API_PORT}\nFRONTEND_PORT=${FRONTEND_PORT}`;
-    fs.writeFile(".env", envData, "utf8", (err) => {
-      if (err) throw err;
-      console.log(".env fue creado con éxito");
-    });
-
-    // Levantar contenedores con docker-compose
-    //para mac > docker compose
-    //para linux > docker-compose
-    // docker-compose -p probando222 up --force-recreate -d
-    const command = `docker compose -p ${terceraVariable} up --force-recreate -d`;
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error: ${error.message}`);
-        return;
-      }
-      if (stderr) {
-        console.error(`stderr: ${stderr}`);
-        return;
-      }
-
-      console.log(`stdout: ${stdout}`);
-    });
-
-    console.log("Aplicación inicializada exitosamente.");
   }
 
   // Función para clonar la base de datos
   async function cloneDatabase() {
-    // Configuración de las conexiones
-    const sourceUri =
-      "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
-    const targetUri =
-      "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/" +
-      nombreSubdominio +
-      "?authSource=admin"; // Cambia esta URI según tu configuración
+    const sourceUri = "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
+    const targetUri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/${nombreSubdominio}?authSource=admin`;
 
     try {
-      // Conectar a la base de datos de origen
       const sourceClient = await MongoClient.connect(sourceUri);
       const sourceDb = sourceClient.db();
-
-      // Conectar a la base de datos de destino
       const targetClient = await MongoClient.connect(targetUri);
       const targetDb = targetClient.db();
 
-      // Obtener una lista de todas las colecciones en la base de datos de origen
       const collections = await sourceDb.listCollections().toArray();
 
-      // Clonar cada colección de la base de datos de origen a la de destino
       await async.eachSeries(collections, async (collection) => {
-
-        //no clonar servicio /applications
-        if (collection.name === "applications") {
-          return;
-        }
-
-        //no clonar ports
-        if (collection.name === "ports") {
+        if (collection.name === "applications" || collection.name === "ports") {
           return;
         }
 
@@ -286,78 +233,91 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT) {
       });
 
 
+      editCollection(result);
 
-      const data_desarrollo = {
-        "subdomain": "tesla",
-        "logo": "https://cdn.worldvectorlogo.com/logos/tesla-motors.svg", //svg
-        "title": "Sitio Web de Tesla Motors",
-        "description":"Introducing Armor Template, a robust and feature-rich web theme that combines the power of modern technologies to kickstart your next online project. Crafted with Vue3, Vuex, Tailwind CSS, Express.js (SSR), Node.js, and Socket.io, Feathers.js (rest) this versatile template offers everything you need to create a dynamic web presence.",
-        "theme": "dark",
-        "plugins": ["mercadopago", "paypal", "strapi"],
-        "user": {}
-
-      }
-
-      //editar servicio "settings[0]" en titulo y descripcion
-      const settings = targetDb.collection("settings");
-
-      const update = await settings.updateOne(
-        { _id: "652dbaaaf522ff35aa9c932a" },
-        {
-          $set: {
-            data: data_desarrollo,
-          },
-        }
-      );  
-
-      console.log("settings actualizado:", update);
-
-
-      
-
-
-
-
-
-      // Cerrar conexiones
       sourceClient.close();
       targetClient.close();
 
       console.log("Base de datos clonada exitosamente.");
-
-      //   try {
-
-      // } catch (error) {
-      // console.error("Error:", error.message);
-      // }
-
-      //con init iniciamos el proseso de crear las imagenes necesarias y levantar los contenedores.
       init();
     } catch (error) {
-      console.error("Error al clonar la base de datos:", error);
+      console.log("Error: La base de datos ya existe");
     }
   }
 
-
-
-
-  // init();
-
-  // Ejecutar la función para clonar la base de datos
   cloneDatabase();
 }
-
-
-createApp("gorras", 1003, 2003);
-
-// Manejar la solicitud POST en la ruta '/datos'
+// Manejar la solicitud POST en la ruta '/create-app'
 app.post("/create-app", (req, res) => {
+  const { subdomain, api_port, frontend_port, password, result } = req.body;
+  const correctPassword = "luci2024"; // La contraseña correcta
+
+  if (password !== correctPassword) {
+    res.status(401).send("Error: Contraseña incorrecta");
+    return;
+  }
+
   console.log("Se recibió un JSON:", req.body);
-  // createApp(req.body.subdomain, req.body.api_port, req.body.frontend_port);
-  res.send("Creando Aplicacion");
+  //el id es el id de la aplicacion
+  console.log("El id de la nueva aplicacion es", result);
+
+  createApp(subdomain, api_port, frontend_port, result)
+    .then(() => {
+
+      res.send("Aplicación creada exitosamente");
+    })
+    .catch((error) => {
+      console.error("Error al crear la aplicación:", error);
+      res.status(500).send("Error al crear la aplicación");
+    });
 });
 
-// createApp("capillaconecta2024", 1001, 2001);
+
+app.post("/update-app", async (req, res) => {
+  const { subdomain, password } = req.body;
+  const correctPassword = "luci2024"; // La contraseña correcta
+
+  if (password !== correctPassword) {
+    res.status(401).send("Error: Contraseña incorrecta");
+    return;
+  }
+
+  try {
+    const docker = new Docker();
+    const containerName = `${subdomain}_frontend_1`; // Nombre del contenedor basado en el subdominio y el servicio
+
+    // Detener el contenedor si está corriendo
+    try {
+      const container = docker.getContainer(containerName);
+      await container.stop();
+      await container.remove();
+      console.log(`Contenedor ${containerName} detenido y eliminado exitosamente.`);
+    } catch (err) {
+      console.log(`No se pudo detener o eliminar el contenedor ${containerName}. Es posible que no esté corriendo.`, err.message);
+    }
+
+    // Cambiar a la ruta del frontend
+    const frontendPath = path.join(__dirname, "frontend");
+    process.chdir(frontendPath);
+
+    // Ejecutar git pull
+    const { stdout, stderr } = await exec("git pull");
+    console.log("Git Pull stdout:", stdout);
+    console.error("Git Pull stderr:", stderr);
+
+    // Volver a construir y ejecutar la imagen Docker
+    const command = `docker compose -p ${subdomain} up --build -d`;
+    const { stdout: dockerStdout, stderr: dockerStderr } = await exec(command);
+    console.log("Docker stdout:", dockerStdout);
+    console.error("Docker stderr:", dockerStderr);
+
+    res.send("Aplicación actualizada exitosamente");
+  } catch (error) {
+    console.error("Error al actualizar la aplicación:", error);
+    res.status(500).send("Error al actualizar la aplicación");
+  }
+});
+
 
 // Iniciar el servidor
 app.listen(PORT, () => {
