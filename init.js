@@ -162,7 +162,58 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
   const nueva_ip = "https://api-" + nombreSubdominio + ".armortemplate.site";
 
-  editarArchivoConPuerto("./FeathersClientModel.js", "./FeathersClient.js", nueva_ip);
+  const modeloOriginal = "https://armortemplate.site/assets/index-c208c92e.js";
+const localPath = "./frontend/dist/assets/index-da8c1a49.js";
+
+// Descargar el archivo desde la URL
+axios({
+  method: "get",
+  url: modeloOriginal,
+  responseType: "stream"
+})
+  .then(function (response) {
+    // Guardar el archivo descargado en la ruta local
+    const writer = fs.createWriteStream(localPath);
+    response.data.pipe(writer);
+
+    writer.on("finish", () => {
+      console.log(`Se ha actualizado el archivo ${path.basename(localPath)}`);
+
+      // Leer el archivo descargado para realizar el reemplazo de texto
+      fs.readFile(localPath, "utf8", (err, data) => {
+        if (err) {
+          console.error("Error al leer el archivo:", err);
+          return;
+        }
+
+        let result = data.replace(/https:\/\/api.armortemplate.site/g, `https://api-${nombreSubdominio}.armortemplate.site`);
+
+        // Guardar los cambios en el archivo
+        fs.writeFile(localPath, result, "utf8", (err) => {
+          if (err) {
+            console.error("Error al escribir el archivo:", err);
+            return;
+          }
+          console.log("Archivo guardado exitosamente.");
+        });
+      });
+    });
+
+    writer.on("error", (err) => {
+      console.error("Error al escribir el archivo:", err);
+    });
+  })
+  .catch(function (error) {
+    console.error(`Error al descargar el archivo: ${error.message}`);
+  });
+
+
+
+    
+
+
+    
+
 
   // Crear instancia de Docker
   const docker = new Docker();
@@ -241,7 +292,9 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
       console.log("Base de datos clonada exitosamente.");
       init();
     } catch (error) {
-      console.log("Error: La base de datos ya existe");
+      console.log("Error: La base de datos ya existe. actualizando aplicacion");
+      init();
+
     }
   }
 
@@ -282,40 +335,72 @@ app.post("/update-app", async (req, res) => {
     return;
   }
 
-  try {
-    const docker = new Docker();
-    const containerName = `${subdomain}_frontend_1`; // Nombre del contenedor basado en el subdominio y el servicio
+  console.log("Se recibió un JSON:", req.body);
 
-    // Detener el contenedor si está corriendo
-    try {
-      const container = docker.getContainer(containerName);
-      await container.stop();
-      await container.remove();
-      console.log(`Contenedor ${containerName} detenido y eliminado exitosamente.`);
-    } catch (err) {
-      console.log(`No se pudo detener o eliminar el contenedor ${containerName}. Es posible que no esté corriendo.`, err.message);
+ //para eliminar la aplicacion se necesita el subdominio. localhost:3000/api/delete-application y cuando responde creamos la aplicacion nuevamente
+
+  const deleteAppFront = await axios.post("http://localhost:3000/api/delete-application", {
+    subdomain: subdomain + "-frontend-1"
+    
+  });
+
+  console.log("deleteAppFront", deleteAppFront.data);
+
+  const deleteAppBack = await axios.post("http://localhost:3000/api/delete-application", {
+    subdomain:  subdomain + "-api-1"
+  });
+
+  //buscar en la base de datos en ports 
+
+  const uri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003?authSource=admin`;
+  const client = new MongoClient(uri, {
+  });
+
+  //hay que buscar segun el subdomain los puertos 
+
+  try {
+    await client.connect();
+    const db = client.db("themeforest-003"); // Especifica el nombre de la base de datos explícitamente
+
+    // Buscar el _id de la aplicación
+    const collection = db.collection("ports");
+    const app = await collection.findOne({ subdomain: subdomain });
+
+    if (app) {
+      const appId = app._id;
+      console.log(`Encontrada la aplicación ${subdomain} con _id: ${appId}`);
+
+      //crear app utilizando los puertos encontrados
+      const API_PORT = app.api_port;
+      const FRONTEND_PORT = app.frontend_port;
+      const result = app.result;
+
+      createApp(subdomain, API_PORT, FRONTEND_PORT, result)
+        .then(() => {
+          res.send("Aplicación actualizada exitosamente");
+        })
+        .catch((error) => {
+          console.error("Error al actualizar la aplicación:", error);
+          res.status(500).send("Error al actualizar la aplicación");
+        });
+    } else {
+      console.log(`No se encontró los puertos con subdominio: ${subdomain}`);
     }
 
-    // Cambiar a la ruta del frontend
-    const frontendPath = path.join(__dirname, "frontend");
-    process.chdir(frontendPath);
-
-    // Ejecutar git pull
-    const { stdout, stderr } = await exec("git pull");
-    console.log("Git Pull stdout:", stdout);
-    console.error("Git Pull stderr:", stderr);
-
-    // Volver a construir y ejecutar la imagen Docker
-    const command = `docker compose -p ${subdomain} up --build -d`;
-    const { stdout: dockerStdout, stderr: dockerStderr } = await exec(command);
-    console.log("Docker stdout:", dockerStdout);
-    console.error("Docker stderr:", dockerStderr);
-
-    res.send("Aplicación actualizada exitosamente");
-  } catch (error) {
-    console.error("Error al actualizar la aplicación:", error);
-    res.status(500).send("Error al actualizar la aplicación");
   }
+    catch (error) {
+      console.error("Error al buscar los puertos:", error);
+    } finally {
+      // await client.close(); // Cerrar la conexión
+    }
+
+
+
+
+  // return res.send("Aplicación actualizada exitosamente");
+
+ 
+
 });
 
 
