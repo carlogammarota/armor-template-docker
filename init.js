@@ -92,15 +92,21 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     });
   }
 
-  editStatus({
-    subdomain: nombreSubdominio,
-    status: 'rechargin nginx',
-  });
+
   // Función para recargar Nginx
   async function recargarNginx() {
-    const comando = "sudo systemctl reload nginx";
+    editStatus({
+      subdomain: nombreSubdominio,
+      status: 'recharging nginx',
+    });
+    // const comando = "sudo systemctl reload nginx";
+    const comando = "sudo /usr/bin/systemctl reload nginx";
     const { stdout, stderr } = await exec(comando);
     console.log(`Resultado: ${stdout}`);
+    editStatus({
+      subdomain: nombreSubdominio,
+      status: stdout,
+    });
     console.error(`Errores: ${stderr}`);
   }
 
@@ -137,6 +143,10 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     try {
       const response = await axios(config);
       console.log("Registro DNS agregado con éxito:", response.data);
+      editStatus({
+        subdomain: nombreSubdominio,
+        status: 'subdomain created',
+      });
       return response.data;
     } catch (error) {
       console.log("Error al agregar el registro DNS (CloudFlare)");
