@@ -51,6 +51,9 @@ function ejecutarComando(comando) {
   });
 }
 
+
+
+
 //ejemplo de uso de editStatus, para cambiar el status de una aplicacion
 // editStatus({
 //   subdomain: 'tesla-motors',
@@ -205,7 +208,8 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
         return;
       }
 
-      let result = data.replace(/subdominioEdit/g, subdominioNuevo);
+      // let result = data.replace(/subdominioEdit/g, subdominioNuevo);
+      // const api_ssr = 'https://api.armortemplate.site'; asi esta en el archivo serverModelo.js
 
       fs.writeFile("./frontend/server.js", result, "utf8", (err) => {
         if (err) {
@@ -309,7 +313,7 @@ fs.readFile(localPath, "utf8", (err, data) => {
       await writeFile(path.join(__dirname, '.env'), envData, 'utf8');
       console.log(".env fue creado con éxito");
 
-      const command = `docker compose -p ${terceraVariable} up --force-recreate -d`;
+      const command = `docker compose -p ${terceraVariable} up --build --force-recreate -d`;
       await execComposeCommand(command);
 
       console.log("Aplicación inicializada exitosamente.");
