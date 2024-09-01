@@ -451,7 +451,6 @@ app.get('*', async (req, res) => {
 
         <!-- Facebook Meta Tags -->
         <meta property="og:url" content="${api_ssr}">
-        con variable
         <meta property="og:type" content="website">
         <meta property="og:title" content="${data.title}">
         <meta property="og:description" content="${data.content}">
@@ -520,7 +519,7 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, '/dist'), staticOptions));
 
 // Iniciar el servidor
-const port = 3939;
+const port = 2222;
 server.listen(port, () => {
   console.log(`Servidor escuchando en el puerto ${port}`);
 });
