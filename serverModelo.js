@@ -25,9 +25,9 @@ const staticOptions = {
 
 app.use(express.static(path.join(__dirname, '/dist'), staticOptions));
 
-// const api_ssr = 'https://api.armortemplate.site';
+const api_ssr = 'https://api.armortemplate.site';
 
-const api_ssr = 'https://api-' + 'subdominioEdit' + '.armortemplate.site';
+// const api_ssr = 'https://api-' + 'subdominioEdit' + '.armortemplate.site';
 
 // app.use((req, res, next) => {
 //   res.setHeader('Cache-Control', 'no-store');
