@@ -102,8 +102,8 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
       subdomain: nombreSubdominio,
       status: 'recharging nginx',
     });
-    // const comando = "sudo systemctl reload nginx";
-    const comando = "sudo /usr/bin/systemctl reload nginx";
+    const comando = "sudo systemctl reload nginx";
+    // const comando = "sudo /usr/bin/systemctl reload nginx";
     const { stdout, stderr } = await exec(comando);
     console.log(`Resultado: ${stdout}`);
     editStatus({
