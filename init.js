@@ -208,7 +208,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
         return;
       }
 
-      // let result = data.replace(/subdominioEdit/g, subdominioNuevo);
+      let result = data.replace(/subdominioEdit/g, subdominioNuevo);
       // const api_ssr = 'https://api.armortemplate.site'; asi esta en el archivo serverModelo.js
 
       fs.writeFile("./frontend/server.js", result, "utf8", (err) => {
