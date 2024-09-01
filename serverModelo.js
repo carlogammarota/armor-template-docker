@@ -25,6 +25,10 @@ const staticOptions = {
 
 app.use(express.static(path.join(__dirname, '/dist'), staticOptions));
 
+// const api_ssr = 'https://api.armortemplate.site';
+
+const api_ssr = 'https://api-' + 'subdominioEdit' + '.armortemplate.site';
+
 // app.use((req, res, next) => {
 //   res.setHeader('Cache-Control', 'no-store');
 //   next();
@@ -116,17 +120,13 @@ function textHTML(html) {
   return texto;
 }
 
-// const subDominioString = subdominioEdit.toString();
-const urlApi = 'https://' + 'subdominioEdit' + '.armortemplate.site';
-
-
 //ssr de site products
 app.get('/products/:id_product', async (req, res) => {
   let data = {};
   try {
     const response = await axios.get(
       // `https://api.armortemplate.site/products/${req.params.id_product}`,
-      urlApi + '/products/' + req.params.id_product,
+      `${api_ssr}/products/${req.params.id_product}`,
     );
     console.log('SSR PRODUCTS', response.data.metaData);
     data = response.data.metaData;
@@ -153,7 +153,8 @@ app.get('/products/:id_product', async (req, res) => {
   <meta itemprop="image" content="${data.img}">
 
   <!-- Facebook Meta Tags -->
-  <meta property="og:url" content="${urlApi}/products/${req.params.id_product}">
+  <meta property="og:url" content="${api_ssr}/products/${req.params.id_product}">
+  con variable
   <meta property="og:type" content="website">
   <meta property="og:title" content="${data.title}">
   <meta property="og:description" content="${data.content}">
@@ -191,7 +192,8 @@ app.get('/events/:id_event', async (req, res) => {
   let data = {};
   try {
     const response = await axios.get(
-      `https://api.armortemplate.site/events/${req.params.id_event}`,
+      // `https://api.armortemplate.site/events/${req.params.id_event}`,
+      `${api_ssr}/events/${req.params.id_event}`,
     );
     console.log('SSR EVENTOS', response.data.metaData);
     data = response.data.metaData;
@@ -250,7 +252,8 @@ app.get('/blog/:id_blog', async (req, res) => {
   let data = {};
   try {
     const response = await axios.get(
-      `https://api.armortemplate.site/blogs/${req.params.id_blog}`,
+      // `https://api.armortemplate.site/blogs/${req.params.id_blog}`,
+      `${api_ssr}/blogs/${req.params.id_blog}`,
     );
     console.log('SSR BLOG', response.data.metaData);
     data = response.data.metaData;
@@ -310,7 +313,9 @@ app.get('/users/:id_user', async (req, res) => {
   let data = {};
   try {
     const response = await axios.get(
-      `https://api.armortemplate.site/users/${req.params.id_user}`,
+      // `https://api.armortemplate.site/users/${req.params.id_user}`,
+      `${api_ssr}/users/${req.params.id_user}`,
+
     );
 
     data = response.data;
@@ -392,34 +397,48 @@ app.post('/notification', async (req, res) => {
 });
 
 app.get('*', async (req, res) => {
-  console.log('SSR ALL');
+  // console.log('SSR ALL ', req);
+
+  //necesito el x-forwarded-for
+  console.log('SSR ALL ', req.headers['x-forwarded-host']);
+
+
+
+
+
   // Aquí puedes generar dinámicamente las metaetiquetas según el ID del producto
   // Aca se puede agregar meta tags dinamicos para el caso de productos tambien se puede hacer para categorias o con cualquier ruta
   // const response = await axios.get(
   //   `https://api.armortemplate.site/users/${req.params.id_user}`,
   // );
+
+
   let data = {
     title: 'Armor CMS + API: Your All-in-One Solution for Web Development',
     content:
       'Unlock the full potential of web development with Armor CMS + API. Our powerful all-in-one solution combines a robust Content Management System (CMS) with a flexible Application Programming Interface (API). Build, customize, and manage web applications with ease. Try our beta version and be part of the future of web development.',
     img: 'https://i.ibb.co/Wn33HgY/meta.jpg',
   };
+  try {
+    const settings = await axios.get(`${api_ssr}/settings`, {
+      query: {
+        $limit: 1,
+      },
+    });
 
-  //comento para desarrollo porque esta api no esta levantada
-  // try {
-  //   const settings = await axios.get('https://api-nombreSubdominio.armortemplate.site/settings',{
-  //     query: {
-  //       $limit: 1,
-  //     },
-  //   });
-  //   data.title = settings.data.data[0].meta.title;
-  //   data.content = settings.data.data[0].meta.description;
-  //   data.img = settings.data.data[0].meta.img;
-  //   console.log('SSR ALL', data);
-  //   // const content = textHTML(metaData);
-  // } catch (error) {
-  //   console.error(error);
-  // }
+    console.log("data", settings.data.data[0].meta);
+    // console.log('SSR ALL', metaData.data.data[0]);
+
+    // console.log('SSR ALL', metaData[0]);
+    // console.log('SSR ALL', metaData.data);
+    data.title = settings.data.data[0].meta.title;
+    data.content = settings.data.data[0].meta.content;
+    data.img = settings.data.data[0].meta.img;
+    console.log('SSR ALL', data);
+    // const content = textHTML(metaData);
+  } catch (error) {
+    console.error(error);
+  }
   const metaTags = `
         <!-- HTML Meta Tags -->
         <title>${data.title}</title>
@@ -431,7 +450,8 @@ app.get('*', async (req, res) => {
         <meta itemprop="image" content="${data.img}">
 
         <!-- Facebook Meta Tags -->
-        <meta property="og:url" content="https://armortemplate.site">
+        <meta property="og:url" content="${api_ssr}">
+        con variable
         <meta property="og:type" content="website">
         <meta property="og:title" content="${data.title}">
         <meta property="og:description" content="${data.content}">
@@ -500,7 +520,7 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, '/dist'), staticOptions));
 
 // Iniciar el servidor
-const port = process.env.PORT || 2222;
+const port = 3939;
 server.listen(port, () => {
   console.log(`Servidor escuchando en el puerto ${port}`);
 });
