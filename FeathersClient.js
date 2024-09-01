@@ -8,7 +8,7 @@ const appRest = feathers();
 let restClient = rest('');
 
 
-restClient = rest('https://api-capilla-del-monte.armortemplate.site');
+restClient = rest('https://api-tesla.armortemplate.site');
 
 
 // Configure an AJAX library (see below) with that client

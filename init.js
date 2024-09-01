@@ -16,6 +16,12 @@ const path = require("path");
 const Docker = require('dockerode');
 //importar editCollection con objeto
 const { editCollection } = require('./editMongoDb.js');
+const { editStatus } = require('./editStatus.js');
+
+// editStatus({
+//   subdomain: 'tesla-motors',
+//   status: 'active',
+// });
 
 // Promisificar funciones de fs
 const readFile = util.promisify(fs.readFile);
@@ -28,14 +34,46 @@ const PORT = 3131;
 // Configurar bodyParser para manejar solicitudes JSON
 app.use(bodyParser.json());
 
+// Función para ejecutar comandos de shell
+function ejecutarComando(comando) {
+  return new Promise((resolve, reject) => {
+    exec(comando, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error al ejecutar el comando: ${error.message}`);
+        return reject(error);
+      }
+      if (stderr) {
+        console.error(`stderr: ${stderr}`);
+      }
+      console.log(`stdout: ${stdout}`);
+      resolve(stdout);
+    });
+  });
+}
+
+//ejemplo de uso de editStatus, para cambiar el status de una aplicacion
+// editStatus({
+//   subdomain: 'tesla-motors',
+//   status: 'active',
+// });
+
 // Función para crear la aplicación
 async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
+
+  //edit status clonando
+  editStatus({
+    subdomain: nombreSubdominio,
+    status: 'creating',
+  });
 
   // Función para clonar el archivo de configuración de dominio por defecto
   function clonarArchivoDominioDefault(subdomain, port) {
     const archivoDefault = "domain-default.conf";
     const nuevoNombre = `${subdomain}.armortemplate.site`;
     const rutaDestino = path.join("/etc/nginx/sites-enabled", nuevoNombre);
+
+  
+
 
     fs.readFile(archivoDefault, "utf8", (err, data) => {
       if (err) {
@@ -54,6 +92,10 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     });
   }
 
+  editStatus({
+    subdomain: nombreSubdominio,
+    status: 'rechargin nginx',
+  });
   // Función para recargar Nginx
   async function recargarNginx() {
     const comando = "sudo systemctl reload nginx";
@@ -61,6 +103,11 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     console.log(`Resultado: ${stdout}`);
     console.error(`Errores: ${stderr}`);
   }
+
+  editStatus({
+    subdomain: nombreSubdominio,
+    status: 'creating subdomains',
+  });
 
   // Función para crear un subdominio en CloudFlare
   async function crearSubdominioCloudFlare(subdomain) {
@@ -105,6 +152,11 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
   await recargarNginx();
 
+  editStatus({
+    subdomain: nombreSubdominio,
+    status: 'cloning database',
+  });
+
   // Variable para almacenar el valor de nombreSubdominio
   const terceraVariable = nombreSubdominio;
 
@@ -129,6 +181,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
       });
     });
   }
+
 
   //necesito una funcion que me permita editar el archivo server.js
 
@@ -162,65 +215,76 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
   const nueva_ip = "https://api-" + nombreSubdominio + ".armortemplate.site";
 
-  const modeloOriginal = "https://armortemplate.site/assets/index-c208c92e.js";
-const localPath = "./frontend/dist/assets/index-da8c1a49.js";
+  editarArchivoConPuerto("./FeathersClientModel.js", "./frontend/src/FeathersClient.js", nueva_ip);
 
-// Descargar el archivo desde la URL
-axios({
-  method: "get",
-  url: modeloOriginal,
-  responseType: "stream"
-})
-  .then(function (response) {
-    // Guardar el archivo descargado en la ruta local
-    const writer = fs.createWriteStream(localPath);
-    response.data.pipe(writer);
 
-    writer.on("finish", () => {
-      console.log(`Se ha actualizado el archivo ${path.basename(localPath)}`);
 
-      // Leer el archivo descargado para realizar el reemplazo de texto
-      fs.readFile(localPath, "utf8", (err, data) => {
-        if (err) {
-          console.error("Error al leer el archivo:", err);
-          return;
-        }
-
-        let result = data.replace(/https:\/\/api.armortemplate.site/g, `https://api-${nombreSubdominio}.armortemplate.site`);
-
-        // Guardar los cambios en el archivo
-        fs.writeFile(localPath, result, "utf8", (err) => {
-          if (err) {
-            console.error("Error al escribir el archivo:", err);
-            return;
-          }
-          console.log("Archivo guardado exitosamente.");
-        });
+  //necesito hacer un yarn build en el frontend
+    // Ajuste para ejecutar npm run build
+    try {
+      const buildCommand = `cd frontend && npm run build`;
+      console.log("Ejecutando comando de construcción:", buildCommand);
+      editStatus({
+        subdomain: nombreSubdominio,
+        status: 'building frontend',
       });
-    });
+      await ejecutarComando(buildCommand);
+      console.log("Construcción completada con éxito.");
+    } catch (error) {
+      console.error("Error durante la construcción del frontend:", error.message);
+    }
 
-    writer.on("error", (err) => {
+  //editar archivos con nueva ip
+  
+
+
+
+  /*
+
+
+const localPath = "./frontend/dist/assets/index-f5d65ef8.js";
+
+fs.readFile(localPath, "utf8", (err, data) => {
+  if (err) {
+    console.error("Error al leer el archivo:", err);
+    return;
+  }
+
+  let result = data.replace(/https:\/\/api.armortemplate.site/g, `https://api-${nombreSubdominio}.armortemplate.site`);
+
+  // Guardar los cambios en el archivo
+  fs.writeFile(localPath, result, "utf8", (err) => {
+    if (err) {
       console.error("Error al escribir el archivo:", err);
-    });
-  })
-  .catch(function (error) {
-    console.error(`Error al descargar el archivo: ${error.message}`);
+      return;
+    }
+    console.log("Archivo guardado exitosamente.");
   });
+});
 
 
 
     
 
 
-    
+    */
 
 
   // Crear instancia de Docker
   const docker = new Docker();
 
+  editStatus({
+    subdomain: nombreSubdominio,
+    status: 'docker instance creating',
+  });
+
   // Función para inicializar la aplicación
   async function init() {
     try {
+      editStatus({
+        subdomain: nombreSubdominio,
+        status: 'app initializing',
+      });
       let data = await readFile(path.join(__dirname, 'default.json'), 'utf8');
       const result = data.replace("nombreSubdominio", nombreSubdominio);
       await writeFile(path.join(__dirname, './api/config/default.json'), result, 'utf8');
@@ -239,8 +303,16 @@ axios({
       await execComposeCommand(command);
 
       console.log("Aplicación inicializada exitosamente.");
+      editStatus({
+        subdomain: nombreSubdominio,
+        status: 'active',
+      });
     } catch (error) {
       console.error(`Error durante la inicialización: ${error.message}`);
+      editStatus({
+        subdomain: nombreSubdominio,
+        status: 'error',
+      });
     }
   }
 
@@ -262,7 +334,12 @@ axios({
   // Función para clonar la base de datos
   async function cloneDatabase() {
     const sourceUri = "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
-    const targetUri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/${nombreSubdominio}?authSource=admin`;
+
+    const targetUri = `mongodb+srv://carlogammarota:ZfAdZxtHFY7gwa6I@armortemplate.erwby.mongodb.net/${nombreSubdominio}?authSource=admin`
+
+    // const targetUri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/${nombreSubdominio}?authSource=admin`;
+    // nueva base de datos
+    
 
     try {
       const sourceClient = await MongoClient.connect(sourceUri);

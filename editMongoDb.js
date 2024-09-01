@@ -5,7 +5,7 @@ const MongoClient = require("mongodb").MongoClient;
 async function editCollection(data) {
   const nombreSubdominio = data.subdomain;
 
-const targetUri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/${nombreSubdominio}?authSource=admin`;
+const targetUri = `mongodb+srv://carlogammarota:ZfAdZxtHFY7gwa6I@armortemplate.erwby.mongodb.net/${nombreSubdominio}?authSource=admin`;
   console.log("editCollection", data);
   try {
     const targetClient = await MongoClient.connect(targetUri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -31,6 +31,7 @@ const targetUri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/$
           status: data.status,
           createdAt: new Date(data.createdAt),
           updatedAt: new Date(),
+          subdomain: data.subdomain,
         },
       }
     );
