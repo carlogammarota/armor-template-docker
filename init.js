@@ -256,7 +256,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     });
   }
     
-  editarArchivoConIp("./modulos/modelo-restaurant.html", nueva_ip);
+  editarArchivoConIp("./frontend/modulos/modelo-restaurant.html", nueva_ip);
 
 
 
