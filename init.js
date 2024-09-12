@@ -346,50 +346,54 @@ fs.readFile(localPath, "utf8", (err, data) => {
   }
 
   // Función para clonar la base de datos
-  async function cloneDatabase() {
-    const sourceUri = "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
+async function cloneDatabase() {
+  const sourceUri = "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
+  const targetUri = `mongodb+srv://carlogammarota:ZfAdZxtHFY7gwa6I@armortemplate.erwby.mongodb.net/${nombreSubdominio}?authSource=admin`;
 
-    const targetUri = `mongodb+srv://carlogammarota:ZfAdZxtHFY7gwa6I@armortemplate.erwby.mongodb.net/${nombreSubdominio}?authSource=admin`
+  try {
+    const sourceClient = await MongoClient.connect(sourceUri);
+    const sourceDb = sourceClient.db();
+    const targetClient = await MongoClient.connect(targetUri);
+    const targetDb = targetClient.db();
 
-    // const targetUri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/${nombreSubdominio}?authSource=admin`;
-    // nueva base de datos
-    
+    const collections = await sourceDb.listCollections().toArray();
 
-    try {
-      const sourceClient = await MongoClient.connect(sourceUri);
-      const sourceDb = sourceClient.db();
-      const targetClient = await MongoClient.connect(targetUri);
-      const targetDb = targetClient.db();
+    await async.eachSeries(collections, async (collection) => {
+      if (collection.name === "applications" || collection.name === "ports") {
+        return; // Omite estas colecciones
+      }
 
-      const collections = await sourceDb.listCollections().toArray();
+      const sourceCollection = sourceDb.collection(collection.name);
+      const targetCollection = targetDb.collection(collection.name);
+      let documents;
 
-      await async.eachSeries(collections, async (collection) => {
-        if (collection.name === "applications" || collection.name === "ports") {
-          return;
-        }
+      if (collection.name === "users") {
+        // Filtra solo el usuario con email "admin@gmail.com"
+        documents = await sourceCollection.find({ email: "admin@gmail.com" }).toArray();
+      } else {
+        // Para otras colecciones, copia todos los documentos
+        documents = await sourceCollection.find({}).toArray();
+      }
 
-        const sourceCollection = sourceDb.collection(collection.name);
-        const targetCollection = targetDb.collection(collection.name);
-        const documents = await sourceCollection.find({}).toArray();
+      if (documents.length > 0) {
         await targetCollection.insertMany(documents);
-      });
+      }
+    });
 
+    sourceClient.close();
+    targetClient.close();
 
-      editCollection(result);
-
-      sourceClient.close();
-      targetClient.close();
-
-      console.log("Base de datos clonada exitosamente.");
-      init();
-    } catch (error) {
-      console.log("Error: La base de datos ya existe. actualizando aplicacion");
-      init();
-
-    }
+    console.log("Base de datos clonada exitosamente.");
+    init();
+  } catch (error) {
+    console.log("Error: La base de datos ya existe. Actualizando aplicación.");
+    init();
   }
+}
 
-  cloneDatabase();
+cloneDatabase();
+
+
 }
 // Manejar la solicitud POST en la ruta '/create-app'
 app.post("/create-app", (req, res) => {
