@@ -231,29 +231,35 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
   
 
-  //aca editamos el archivo index.html con la nueva ip api, modulo.
+  //aca copiamos el archivo modulos/modelo-restaurant.hml y lo guardamos/remplazamos en  /modulos/restaurant/index.html
+  //luego de copiarlo hay que remplazar remplazar_aqui_la_api por la nueva ip
+
+
   function editarArchivoConIp(archivo, nueva_ip) {
-    fs.readFile(archivo, "utf8", (err, data) => {
+    fs.copyFile(archivo, "./modulos/restaurant/index.html", (err) => {
       if (err) {
-        console.error("Error al leer el archivo:", err);
-        return;
+        return console.error(`Error al copiar el archivo: ${err}`);
       }
 
-      let result = data.replace(/remplazar_aqui_la_api/g, nueva_ip);
-
-      fs.writeFile(archivo, result, "utf8", (err) => {
+      fs.readFile("./modulos/restaurant/index.html", "utf8", (err, data) => {
         if (err) {
-          console.error("Error al escribir el archivo:", err);
-          return;
+          return console.error(`Error al leer el archivo: ${err}`);
         }
-        console.log("Archivo guardado exitosamente.");
+
+        const resultado = data.replace(/remplazar_aqui_la_api/g, nueva_ip);
+
+        fs.writeFile("./modulos/restaurant/index.html", resultado, "utf8", (err) => {
+          if (err) return console.error(`Error al escribir en el archivo: ${err}`);
+          console.log(`Se ha actualizado la IP en ./modulos/restaurant/index.html`);
+        });
       });
     });
   }
-  editarArchivoConIp("./frontend/modulos/restaurant/index.html", nueva_ip);
+    
+  editarArchivoConIp("./modulos/modelo-restaurant.html", nueva_ip);
 
 
-  
+
 
 
   editarArchivoConPuerto("./FeathersClientModel.js", "./frontend/src/FeathersClient.js", nueva_ip);
