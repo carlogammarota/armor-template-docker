@@ -244,7 +244,8 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   
       // Leer el archivo copiado
       let data = await fs.promises.readFile(destino, "utf8");
-  
+      
+      // /home/armor-template-docker/frontend/modulos/modelo-restaurant.html
       // Reemplazar el texto
       const resultado = data.replace(/remplazar_aqui_la_api/g, nueva_ip);
   
@@ -257,6 +258,11 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   }
   
   editarArchivoConIp(path.join(__dirname, "./frontend/modulos/modelo-restaurant.html"), nueva_ip);
+
+  editCollection({
+    subdomain: nombreSubdominio,
+    result: result,
+  });
 
 
 

@@ -23,15 +23,17 @@ const targetUri = `mongodb+srv://carlogammarota:ZfAdZxtHFY7gwa6I@armortemplate.e
       { _id: firstDoc._id },
       {
         $set: {
-          plugins: data.plugins,
-          title: data.title,
-          description: data.description,
-          logo: data.logo,
-          link: data.link,
-          status: data.status,
+          plugins: data.result.plugins,
+          title: data.result.title,
+          description: data.result.description,
+          logo: data.result.logo,
+          link: data.result.link,
+          status: data.result.status,
           createdAt: new Date(data.createdAt),
           updatedAt: new Date(),
           subdomain: data.subdomain,
+          theme: data.result.theme,
+          restaurant: data.result.restaurant,
         },
       }
     );
