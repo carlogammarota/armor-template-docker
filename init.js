@@ -267,10 +267,9 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
 
 
-  //necesito hacer un yarn build en el frontend
-    // Ajuste para ejecutar npm run build
+  //ajustar esto porque no lo esta corriendo bien.
     try {
-      const buildCommand = `cd frontend && npm run build`;
+      const buildCommand = `cd ./frontend && yarn build`;
       console.log("Ejecutando comando de construcción:", buildCommand);
       editStatus({
         subdomain: nombreSubdominio,
@@ -424,7 +423,7 @@ async function cloneDatabase() {
       subdomain: nombreSubdominio,
       result: result,
     });
-    
+
 
     init();
   } catch (error) {
