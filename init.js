@@ -126,7 +126,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     const dnsRecordData = {
       type: "A",
       name: subdomain,
-      content: "181.110.131.81",
+      content: "159.223.118.53",
       ttl: 1,
       proxied: true,
     };
