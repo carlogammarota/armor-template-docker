@@ -25,9 +25,9 @@ const staticOptions = {
 
 app.use(express.static(path.join(__dirname, '/dist'), staticOptions));
 
-// const api_ssr = 'https://api.armortemplate.site';
+const api_ssr = 'https://api.armortemplate.site';
 
-const api_ssr = 'https://api-' + 'subdominioEdit' + '.armortemplate.site';
+// const api_ssr = 'https://api-' + 'subdominioEdit' + '.armortemplate.site';
 
 // app.use((req, res, next) => {
 //   res.setHeader('Cache-Control', 'no-store');
@@ -107,8 +107,6 @@ io.on('connection', (socket) => {
   });
 });
 
-
-
 function textHTML(html) {
   // Cargar la cadena HTML en Cheerio
   const $ = cheerio.load(html);
@@ -121,15 +119,21 @@ function textHTML(html) {
 }
 
 //ssr de site products
-app.get('/products/:id_product', async (req, res) => {
+app.get('/products/:slug', async (req, res) => {
   let data = {};
   try {
+    // const response = await axios.get(
+    //   // `https://api.armortemplate.site/products/${req.params.id_product}`,
+    //   `${api_ssr}/products/${req.params.id_product}`,
+    // );
+    // console.log('SSR PRODUCTS', response.data.metaData);
+    // data = response.data.metaData;
+    //ahora hay que hacer un find con slug
     const response = await axios.get(
-      // `https://api.armortemplate.site/products/${req.params.id_product}`,
-      `${api_ssr}/products/${req.params.id_product}`,
+      `${api_ssr}/products?slug=${req.params.slug}`,
     );
-    console.log('SSR PRODUCTS', response.data.metaData);
-    data = response.data.metaData;
+    console.log('SSR PRODUCTS', response.data.data[0]);
+    data = response.data.data[0];
   } catch (error) {
     console.error(error);
   }
@@ -150,15 +154,14 @@ app.get('/products/:id_product', async (req, res) => {
   <!-- Google / Search Engine Tags -->
   <meta itemprop="name" content="${data.title}">
   <meta itemprop="description" content="${data.content}">
-  <meta itemprop="image" content="${data.img}">
+  <meta itemprop="image" content="${data.metaData.img}">
 
   <!-- Facebook Meta Tags -->
   <meta property="og:url" content="${api_ssr}/products/${req.params.id_product}">
-  con variable
   <meta property="og:type" content="website">
   <meta property="og:title" content="${data.title}">
   <meta property="og:description" content="${data.content}">
-  <meta property="og:image" content="${data.img}">
+  <meta property="og:image" content="${data.metaData.img}">
 
   <!-- Twitter Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
@@ -166,7 +169,7 @@ app.get('/products/:id_product', async (req, res) => {
   <meta name="twitter:site:id" content="ID_de_Twitter_del_sitio">
   <meta name="twitter:title" content="${data.title}">
   <meta name="twitter:description" content="${data.content}">
-  <meta name="twitter:image" content="${data.img}">
+  <meta name="twitter:image" content="${data.metaData.img}">
     `;
 
   // Lee el archivo "index.html"
@@ -315,7 +318,6 @@ app.get('/users/:id_user', async (req, res) => {
     const response = await axios.get(
       // `https://api.armortemplate.site/users/${req.params.id_user}`,
       `${api_ssr}/users/${req.params.id_user}`,
-
     );
 
     data = response.data;
@@ -342,7 +344,8 @@ app.get('/users/:id_user', async (req, res) => {
         <meta itemprop="description" content="${data.content}">
         <meta itemprop="image" content="${data.image}">
         <!-- Facebook Meta Tags -->
-        <meta property="og:url" content="https://armortemplate.site/users/${req.params.id_user}">
+        
+        <meta property="og:url" content="${api_ssr}/users/${req.params.id_user}">
         <meta property="og:type" content="website">
         <meta property="og:title" content="Armor CMS / User ${data.name} ${data.lastname}">
         <meta property="og:description" content="${data.content}">
@@ -374,141 +377,123 @@ app.get('/users/:id_user', async (req, res) => {
   });
 });
 
-//cuando la ruta es /notification post 
+//cuando la ruta es /notification post
 app.post('/notification', async (req, res) => {
   // console.log('SSR NOTIFICATION', req.body);
   const { password, message } = req.body;
 
-
   //retornar error si no esta mal la password
   if (password !== 'stuart') {
-    return res.status(401).json({ message: "Contraseña incorrecta" });
+    return res.status(401).json({ message: 'Contraseña incorrecta' });
   }
   if (!message) {
-    return res.status(401).json({ message: "No hay mensaje" });
+    return res.status(401).json({ message: 'No hay mensaje' });
   }
   console.log('SSR NOTIFICATION', message);
   //pasword
 
   // // console.log('SSR NOTIFICATION', req.body);
   io.emit('notificationSocket', message);
-  res.status(200).json({ message: "Notificacion enviada" });
+  res.status(200).json({ message: 'Notificacion enviada' });
   // res.send('notification enviada', message);
 });
 
-app.get('*', async (req, res) => {
-  // console.log('SSR ALL ', req);
+// Servir los archivos estáticos desde las carpetas dentro de "modulo-restaurant"
+app.use(
+  '/css',
+  express.static(path.join(__dirname, '/modulos/restaurant/css')),
+);
+app.use(
+  '/fonts',
+  express.static(path.join(__dirname, '/modulos/restaurant/fonts')),
+);
+app.use(
+  '/images',
+  express.static(
+    path.join(__dirname, '/modulos/restaurant/images'),
+  ),
+);
 
-  //necesito el x-forwarded-for
+app.get('/', async (req, res) => {
   console.log('SSR ALL ', req.headers['x-forwarded-host']);
 
-
-
-
-
-  // Aquí puedes generar dinámicamente las metaetiquetas según el ID del producto
-  // Aca se puede agregar meta tags dinamicos para el caso de productos tambien se puede hacer para categorias o con cualquier ruta
-  // const response = await axios.get(
-  //   `https://api.armortemplate.site/users/${req.params.id_user}`,
-  // );
-
-
-  let data = {
-    title: 'Armor CMS + API: Your All-in-One Solution for Web Development',
-    content:
-      'Unlock the full potential of web development with Armor CMS + API. Our powerful all-in-one solution combines a robust Content Management System (CMS) with a flexible Application Programming Interface (API). Build, customize, and manage web applications with ease. Try our beta version and be part of the future of web development.',
-    img: 'https://i.ibb.co/Wn33HgY/meta.jpg',
-  };
+  // Llama a la configuración para obtener `forceHome`
+  let forceHome;
   try {
-    const settings = await axios.get(`${api_ssr}/settings`, {
-      query: {
-        $limit: 1,
-      },
-    });
-
-    console.log("data", settings.data.data[0].meta);
-    // console.log('SSR ALL', metaData.data.data[0]);
-
-    // console.log('SSR ALL', metaData[0]);
-    // console.log('SSR ALL', metaData.data);
-    data.title = settings.data.data[0].meta.title;
-    data.content = settings.data.data[0].meta.content;
-    data.img = settings.data.data[0].meta.img;
-    console.log('SSR ALL', data);
-    // const content = textHTML(metaData);
+    const settings = await axios.get(`${api_ssr}/settings`, { query: { $limit: 1 } });
+    forceHome = settings.data.data[0].restaurant.forceHome;
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching settings:', error);
+    return res.status(500).send('Error interno del servidor');
   }
-  const metaTags = `
-        <!-- HTML Meta Tags -->
-        <title>${data.title}</title>
-        <meta name="description" content="${data.content}">
 
-        <!-- Google / Search Engine Tags -->
-        <meta itemprop="name" content="${data.title}">
-        <meta itemprop="description" content="${data.content}">
-        <meta itemprop="image" content="${data.img}">
+  // Si `restaurantStatus` es false, maneja el 404 o muestra el contenido genérico
+  if (!forceHome) {
+    const defaultMeta = {
+      title: 'Armor CMS + API: Your All-in-One Solution for Web Development',
+      content: 'Unlock the full potential of web development with Armor CMS + API...',
+      img: 'https://i.ibb.co/Wn33HgY/meta.jpg',
+    };
 
-        <!-- Facebook Meta Tags -->
+    try {
+      // Obtiene las metatags si están definidas en la configuración
+      const settings = await axios.get(`${api_ssr}/settings`, { query: { $limit: 1 } });
+      const meta = settings.data.data[0].meta || defaultMeta;
+
+      // Crea las metatags dinámicas
+      const metaTags = `
+        <title>${meta.title}</title>
+        <meta name="description" content="${meta.content}">
+        <meta itemprop="name" content="${meta.title}">
+        <meta itemprop="description" content="${meta.content}">
+        <meta itemprop="image" content="${meta.img}">
         <meta property="og:url" content="${api_ssr}">
         <meta property="og:type" content="website">
-        <meta property="og:title" content="${data.title}">
-        <meta property="og:description" content="${data.content}">
-        <meta property="og:image" content="${data.img}">
-
-        <!-- Twitter Meta Tags -->
+        <meta property="og:title" content="${meta.title}">
+        <meta property="og:description" content="${meta.content}">
+        <meta property="og:image" content="${meta.img}">
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:site" content="@nombre_de_usuario_del_sitio">
-        <meta name="twitter:site:id" content="ID_de_Twitter_del_sitio">
-        <meta name="twitter:title" content="${data.title}">
-        <meta name="twitter:description" content="${data.content}">
-        <meta name="twitter:image" content="${data.content}">
-    `;
-  // res.setHeader('Content-Type', 'application/javascript');
+        <meta name="twitter:title" content="${meta.title}">
+        <meta name="twitter:description" content="${meta.content}">
+        <meta name="twitter:image" content="${meta.img}">
+      `;
 
-  // Lee el archivo "index.html"
-  // if (req.url === '/dist/assets/index-d5f393a9.js') {
-  //   // Establece el tipo MIME para JavaScript
-  //   res.setHeader('Content-Type', 'application/javascript');
+      // Inserta las metatags dinámicas en el HTML y lo envía
+      const indexPath = path.join(__dirname, '/dist', 'index.html');
+      fs.readFile(indexPath, 'utf-8', (err, html) => {
+        if (err) {
+          console.error('Error al leer el archivo index.html', err);
+          return res.status(500).send('Error interno del servidor');
+        }
 
-  //   // Lee y sirve el archivo JavaScript
-  //   fs.readFile(__dirname, '/dist/assets/index-d5f393a9.js', (err, data) => {
-  //     if (err) {
-  //       // Manejar errores aquí
-  //       console.error(err);
-  //       res.statusCode = 500;
-  //       res.end('Error interno del servidor');
-  //     } else {
-  //       res.end(data);
-  //     }
-  //   });
-  // } else {
-  //   // Manejar otras rutas o recursos aquí
-  //   res.statusCode = 404;
-  //   res.end('Recurso no encontrado');
-  // }
+        const modifiedHtml = html.replace('<title></title>', metaTags);
+        res.send(modifiedHtml);
+      });
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      return res.status(500).send('Error interno del servidor');
+    }
+    return;
+  }
 
-  const indexPath = path.join(__dirname, '/dist', 'index.html');
-  fs.readFile(indexPath, 'utf-8', (err, html) => {
+  // Si `restaurantStatus` está activo, procesa la respuesta
+  const restaurantIndexPath = path.join(__dirname, '/modulos/restaurant', 'index.html');
+  fs.readFile(restaurantIndexPath, 'utf-8', (err, html) => {
     if (err) {
       console.error('Error al leer el archivo index.html', err);
       return res.status(500).send('Error interno del servidor');
     }
 
-    // Inserta las metaetiquetas dinámicas en el archivo "index.html" creadas en ej objeto metaTags
-    const modifiedHtml = html.replace('<title></title>', `${metaTags}`);
-
-    // Envía el archivo "index.html" modificado con las metaetiquetas
-    res.send(modifiedHtml);
+    // Envía el HTML del módulo de restaurante
+    res.send(html);
   });
 });
 
 
-
 // Ruta principal
-// app.get('/', (req, res) => {
-//   res.sendFile(__dirname + '/dist/index.html');
-// });
+app.get('*', (req, res) => {
+  res.sendFile(__dirname + '/dist/index.html');
+});
 
 //enviar mensaje
 

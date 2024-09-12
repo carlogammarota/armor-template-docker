@@ -196,7 +196,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   }
 
 
-  //necesito una funcion que me permita editar el archivo server.js
+  
 
   
 
@@ -228,6 +228,33 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   //produccion
 
   const nueva_ip = "https://api-" + nombreSubdominio + ".armortemplate.site";
+
+  
+
+  //aca editamos el archivo index.html con la nueva ip api, modulo.
+  function editarArchivoConIp(archivo, nueva_ip) {
+    fs.readFile(archivo, "utf8", (err, data) => {
+      if (err) {
+        console.error("Error al leer el archivo:", err);
+        return;
+      }
+
+      let result = data.replace(/remplazar_aqui_la_api/g, nueva_ip);
+
+      fs.writeFile(archivo, result, "utf8", (err) => {
+        if (err) {
+          console.error("Error al escribir el archivo:", err);
+          return;
+        }
+        console.log("Archivo guardado exitosamente.");
+      });
+    });
+  }
+  editarArchivoConIp("./frontend/modulos/restaurant/index.html", nueva_ip);
+
+
+  
+
 
   editarArchivoConPuerto("./FeathersClientModel.js", "./frontend/src/FeathersClient.js", nueva_ip);
 
