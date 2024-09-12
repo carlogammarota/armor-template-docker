@@ -259,10 +259,6 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   
   editarArchivoConIp(path.join(__dirname, "./frontend/modulos/modelo-restaurant.html"), nueva_ip);
 
-  editCollection({
-    subdomain: nombreSubdominio,
-    result: result,
-  });
 
 
 
@@ -422,6 +418,14 @@ async function cloneDatabase() {
     targetClient.close();
 
     console.log("Base de datos clonada exitosamente.");
+
+    console.log("Editando la colección settings");
+    editCollection({
+      subdomain: nombreSubdominio,
+      result: result,
+    });
+    
+
     init();
   } catch (error) {
     console.log("Error: La base de datos ya existe. Actualizando aplicación.");
