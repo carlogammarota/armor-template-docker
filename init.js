@@ -234,30 +234,29 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   //aca copiamos el archivo modulos/modelo-restaurant.hml y lo guardamos/remplazamos en  /modulos/restaurant/index.html
   //luego de copiarlo hay que remplazar remplazar_aqui_la_api por la nueva ip
 
-
-  function editarArchivoConIp(archivo, nueva_ip) {
-    fs.copyFile(archivo, "./frontend/modulos/restaurant/index.html", (err) => {
-      if (err) {
-        return console.error(`Error al copiar el archivo: ${err}`);
-      }
-
-      fs.readFile("./frontend/modulos/restaurant/index.html", "utf8", (err, data) => {
-        if (err) {
-          return console.error(`Error al leer el archivo: ${err}`);
-        }
-
-        const resultado = data.replace(/remplazar_aqui_la_api/g, nueva_ip);
-
-        fs.writeFile("./frontend/modulos/restaurant/index.html", resultado, "utf8", (err) => {
-          if (err) return console.error(`Error al escribir en el archivo: ${err}`);
-          console.log(`Se ha actualizado la IP en ./frontend/modulos/restaurant/index.html`);
-        });
-      });
-    });
+  async function editarArchivoConIp(archivo, nueva_ip) {
+    const destino = path.join(__dirname, "./frontend/modulos/restaurant/index.html");
+  
+    try {
+      // Copiar el archivo modelo a la nueva ubicación
+      await fs.promises.copyFile(archivo, destino);
+      console.log("Archivo copiado correctamente");
+  
+      // Leer el archivo copiado
+      let data = await fs.promises.readFile(destino, "utf8");
+  
+      // Reemplazar el texto
+      const resultado = data.replace(/remplazar_aqui_la_api/g, nueva_ip);
+  
+      // Escribir el archivo con la nueva IP
+      await fs.promises.writeFile(destino, resultado, "utf8");
+      console.log(`Se ha actualizado la IP en ${destino}`);
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+    }
   }
-    
-  editarArchivoConIp("./frontend/modulos/modelo-restaurant.html", nueva_ip);
-
+  
+  editarArchivoConIp(path.join(__dirname, "./frontend/modulos/modelo-restaurant.html"), nueva_ip);
 
 
 
