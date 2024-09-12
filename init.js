@@ -236,21 +236,21 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
 
   function editarArchivoConIp(archivo, nueva_ip) {
-    fs.copyFile(archivo, "./modulos/restaurant/index.html", (err) => {
+    fs.copyFile(archivo, "./frontend/modulos/restaurant/index.html", (err) => {
       if (err) {
         return console.error(`Error al copiar el archivo: ${err}`);
       }
 
-      fs.readFile("./modulos/restaurant/index.html", "utf8", (err, data) => {
+      fs.readFile("./frontend/modulos/restaurant/index.html", "utf8", (err, data) => {
         if (err) {
           return console.error(`Error al leer el archivo: ${err}`);
         }
 
         const resultado = data.replace(/remplazar_aqui_la_api/g, nueva_ip);
 
-        fs.writeFile("./modulos/restaurant/index.html", resultado, "utf8", (err) => {
+        fs.writeFile("./frontend/modulos/restaurant/index.html", resultado, "utf8", (err) => {
           if (err) return console.error(`Error al escribir en el archivo: ${err}`);
-          console.log(`Se ha actualizado la IP en ./modulos/restaurant/index.html`);
+          console.log(`Se ha actualizado la IP en ./frontend/modulos/restaurant/index.html`);
         });
       });
     });
