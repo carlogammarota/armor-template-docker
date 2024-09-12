@@ -24,3 +24,9 @@ clone_or_pull git@github.com:carlogammarota/template-themefores.git frontend
 
 # Clonar o hacer pull en el repositorio template-themeforest-api y cambiarle el nombre a api
 clone_or_pull git@github.com:carlogammarota/template-themeforest-api.git api
+
+# git@github.com:carlogammarota/modulo-restaurant.git 
+# clonar ese repositorio git@github.com:carlogammarota/modulo-restaurant.git y ponerlo dentro de frontend
+
+clone_or_pull git@github.com:carlogammarota/modulo-restaurant.git frontend/modulo-restaurant
+
