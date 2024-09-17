@@ -75,7 +75,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     const nuevoNombre = `${subdomain}.armortemplate.site`;
     const rutaDestino = path.join("/etc/nginx/sites-enabled", nuevoNombre);
 
-  
+
 
 
     fs.readFile(archivoDefault, "utf8", (err, data) => {
@@ -196,9 +196,9 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   }
 
 
-  
 
-  
+
+
 
   // Función para editar y guardar archivos
   function editarYGuardar(serverModeloPath, subdominioNuevo) {
@@ -229,26 +229,26 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
   const nueva_ip = "https://api-" + nombreSubdominio + ".armortemplate.site";
 
-  
+
 
   //aca copiamos el archivo modulos/modelo-restaurant.hml y lo guardamos/remplazamos en  /modulos/restaurant/index.html
   //luego de copiarlo hay que remplazar remplazar_aqui_la_api por la nueva ip
 
   async function editarArchivoConIp(archivo, nueva_ip) {
     const destino = path.join(__dirname, "./frontend/modulos/restaurant/index.html");
-  
+
     try {
       // Copiar el archivo modelo a la nueva ubicación
       await fs.promises.copyFile(archivo, destino);
       console.log("Archivo copiado correctamente");
-  
+
       // Leer el archivo copiado
       let data = await fs.promises.readFile(destino, "utf8");
-      
+
       // /home/armor-template-docker/frontend/modulos/modelo-restaurant.html
       // Reemplazar el texto
       const resultado = data.replace(/remplazar_aqui_la_api/g, nueva_ip);
-  
+
       // Escribir el archivo con la nueva IP
       await fs.promises.writeFile(destino, resultado, "utf8");
       console.log(`Se ha actualizado la IP en ${destino}`);
@@ -256,7 +256,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
       console.error(`Error: ${err.message}`);
     }
   }
-  
+
   editarArchivoConIp(path.join(__dirname, "./frontend/modulos/modelo-restaurant.html"), nueva_ip);
 
 
@@ -268,21 +268,21 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
 
   //ajustar esto porque no lo esta corriendo bien.
-    try {
-      const buildCommand = `cd ./frontend && yarn build`;
-      console.log("Ejecutando comando de construcción:", buildCommand);
-      editStatus({
-        subdomain: nombreSubdominio,
-        status: 'building frontend',
-      });
-      await ejecutarComando(buildCommand);
-      console.log("Construcción completada con éxito.");
-    } catch (error) {
-      console.error("Error durante la construcción del frontend:", error.message);
-    }
+  try {
+    const buildCommand = `cd ./frontend && yarn build`;
+    console.log("Ejecutando comando de construcción:", buildCommand);
+    editStatus({
+      subdomain: nombreSubdominio,
+      status: 'building frontend',
+    });
+    await ejecutarComando(buildCommand);
+    console.log("Construcción completada con éxito.");
+  } catch (error) {
+    console.error("Error durante la construcción del frontend:", error.message);
+  }
 
   //editar archivos con nueva ip
-  
+
 
 
 
@@ -379,63 +379,359 @@ fs.readFile(localPath, "utf8", (err, data) => {
   }
 
   // Función para clonar la base de datos
-async function cloneDatabase() {
-  const sourceUri = "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
-  const targetUri = `mongodb+srv://carlogammarota:ZfAdZxtHFY7gwa6I@armortemplate.erwby.mongodb.net/${nombreSubdominio}?authSource=admin`;
+  async function cloneDatabase() {
+    const sourceUri = "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
+    const targetUri = `mongodb+srv://armortemplate:jBFEqdXv6wvi1QbR@armorcluster.4egzv.mongodb.net/${nombreSubdominio}?authSource=admin`;
 
-  try {
-    const sourceClient = await MongoClient.connect(sourceUri);
-    const sourceDb = sourceClient.db();
-    const targetClient = await MongoClient.connect(targetUri);
-    const targetDb = targetClient.db();
+    try {
+      const sourceClient = await MongoClient.connect(sourceUri);
+      const sourceDb = sourceClient.db();
+      const targetClient = await MongoClient.connect(targetUri);
+      const targetDb = targetClient.db();
 
-    const collections = await sourceDb.listCollections().toArray();
+      const collections = await sourceDb.listCollections().toArray();
 
-    await async.eachSeries(collections, async (collection) => {
-      if (collection.name === "applications" || collection.name === "ports") {
-        return; // Omite estas colecciones
+      await async.eachSeries(collections, async (collection) => {
+        if (collection.name === "applications" || collection.name === "ports") {
+          return; // Omite estas colecciones
+        }
+
+        const sourceCollection = sourceDb.collection(collection.name);
+        const targetCollection = targetDb.collection(collection.name);
+        let documents;
+
+        if (collection.name === "users") {
+          // Filtra solo el usuario con email "admin@gmail.com"
+          documents = await sourceCollection.find({ email: "admin@gmail.com" }).toArray();
+        } else {
+          // Para otras colecciones, copia todos los documentos
+          documents = await sourceCollection.find({}).toArray();
+        }
+
+        if (documents.length > 0) {
+          await targetCollection.insertMany(documents);
+        }
+      });
+
+      sourceClient.close();
+      targetClient.close();
+
+      console.log("Base de datos clonada exitosamente.");
+
+      console.log("Editando la colección settings");
+      editCollection({
+        subdomain: nombreSubdominio,
+        result: result,
+      });
+
+
+      init();
+    } catch (error) {
+      console.log("Error: La base de datos ya existe. Actualizando aplicación.");
+      init();
+    }
+  }
+
+  cloneDatabase();
+
+
+}
+
+
+
+/* 
+Funcion para eliminar la app por completo. front y api, contenedores, subdominios, archivos de configuracion de nginx, registros dns en cloudflare y base de datos.
+hacerlo bien ordenado.
+
+1. eliminar contenedores
+2. eliminar imagenes
+3. eliminar subdominios
+4. eliminar archivos de configuracion de nginx
+5. eliminar registros dns en cloudflare
+6. eliminar base de datos (si la opcion variable 'delete_full_application' esta activada)
+
+*/
+
+
+// Función principal para eliminar la aplicación
+async function deleteApp(subdomain, delete_database) {
+  // Función para eliminar un subdominio en CloudFlare
+  async function eliminarSubdominioCloudFlare(subdomain) {
+    const zoneId = "22ba6192a10c766dd77527c7a101ad35";
+    const apiKey = "77543657f985f75834e7951b022638892bddc";
+    const authEmail = "carlo.gammarota@gmail.com";
+    const apiUrl = `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
+
+    try {
+      const response = await axios.get(apiUrl, {
+        headers: {
+          "X-Auth-Key": apiKey,
+          "X-Auth-Email": authEmail,
+          "Content-Type": "application/json",
+        },
+      });
+      const dnsRecords = response.data.result;
+
+      for (let record of dnsRecords) {
+        if (record.name === subdomain || record.name === `api-${subdomain}`) {
+          try {
+            await axios.delete(`${apiUrl}/${record.id}`, {
+              headers: {
+                "X-Auth-Key": apiKey,
+                "X-Auth-Email": authEmail,
+                "Content-Type": "application/json",
+              },
+            });
+            console.log(`Registro DNS eliminado: ${record.name}`);
+          } catch (error) {
+            console.error(`Error eliminando el registro DNS para ${record.name}: ${error.message}`);
+          }
+        }
       }
+    } catch (error) {
+      console.log("Error al eliminar el registro DNS (CloudFlare)", error.message);
+    }
+  }
 
-      const sourceCollection = sourceDb.collection(collection.name);
-      const targetCollection = targetDb.collection(collection.name);
-      let documents;
+  // Función para eliminar archivos de configuración de dominio
+  function eliminarArchivoDominio(subdomain) {
+    const archivoFrontend = `${subdomain}.armortemplate.site`;
+    const archivoApi = `api-${subdomain}.armortemplate.site`;
+    const rutaFrontend = path.join("/etc/nginx/sites-enabled", archivoFrontend);
+    const rutaApi = path.join("/etc/nginx/sites-enabled", archivoApi);
 
-      if (collection.name === "users") {
-        // Filtra solo el usuario con email "admin@gmail.com"
-        documents = await sourceCollection.find({ email: "admin@gmail.com" }).toArray();
+    fs.unlink(rutaFrontend, (err) => {
+      if (err) {
+        console.error(`Error al eliminar el archivo ${archivoFrontend}: ${err}`);
       } else {
-        // Para otras colecciones, copia todos los documentos
-        documents = await sourceCollection.find({}).toArray();
-      }
-
-      if (documents.length > 0) {
-        await targetCollection.insertMany(documents);
+        console.log(`Archivo ${archivoFrontend} eliminado con éxito.`);
       }
     });
 
-    sourceClient.close();
-    targetClient.close();
-
-    console.log("Base de datos clonada exitosamente.");
-
-    console.log("Editando la colección settings");
-    editCollection({
-      subdomain: nombreSubdominio,
-      result: result,
+    fs.unlink(rutaApi, (err) => {
+      if (err) {
+        console.error(`Error al eliminar el archivo ${archivoApi}: ${err}`);
+      } else {
+        console.log(`Archivo ${archivoApi} eliminado con éxito.`);
+      }
     });
+  }
 
+  // Función para recargar Nginx
+  async function recargarNginx() {
+    try {
+      await exec("sudo systemctl reload nginx");
+      console.log("Nginx recargado con éxito.");
+    } catch (error) {
+      console.error("Error al recargar Nginx:", error.message);
+    }
+  }
 
-    init();
-  } catch (error) {
-    console.log("Error: La base de datos ya existe. Actualizando aplicación.");
-    init();
+// Función para eliminar los contenedores
+async function eliminarContenedores(subdomain) {
+  const docker = new Docker();
+  const contenedores = await docker.listContainers({ all: true }); // Incluye contenedores detenidos
+
+  for (let contenedor of contenedores) {
+    for (let nombre of contenedor.Names) {
+      if (nombre.includes(subdomain)) {
+        const container = docker.getContainer(contenedor.Id);
+        try {
+          // Primero intenta detener el contenedor (aunque esté detenido)
+          try {
+            await container.stop();
+            console.log(`Contenedor ${nombre} detenido con éxito.`);
+          } catch (stopError) {
+            // Si el contenedor ya está detenido, no hace falta detenerlo de nuevo
+            console.log(`Contenedor ${nombre} ya estaba detenido.`);
+          }
+
+          // Luego intenta eliminar el contenedor
+          try {
+            await container.remove({ force: true }); // Forzar la eliminación del contenedor
+            console.log(`Contenedor ${nombre} eliminado con éxito.`);
+          } catch (removeError) {
+            console.error(`Error eliminando contenedor ${nombre}: ${removeError.message}`);
+          }
+        } catch (error) {
+          console.error(`Error al manejar contenedor ${nombre}: ${error.message}`);
+        }
+      }
+    }
   }
 }
 
-cloneDatabase();
+
+  // Función para eliminar las imágenes
+  async function eliminarImagenes(subdomain) {
+    const docker = new Docker();
+    const imagenes = await docker.listImages();
+
+    for (let imagen of imagenes) {
+      for (let tag of imagen.RepoTags || []) {
+        if (tag.includes(subdomain)) {
+          const image = docker.getImage(imagen.Id);
+          try {
+            await image.remove({ force: true }); // Forzar la eliminación de la imagen
+            console.log(`Imagen ${tag} eliminada con éxito.`);
+          } catch (error) {
+            console.error(`Error eliminando la imagen ${tag}: ${error.message}`);
+          }
+        }
+      }
+    }
+  }
+
+  // Función para eliminar las networks
+  async function eliminarNetworks(subdomain) {
+    const docker = new Docker();
+    const networks = await docker.listNetworks();
+    const networkName = `${subdomain}_mynetwork`; // Concatenar el subdominio con _mynetwork
+
+    for (let network of networks) {
+      const nombre = network.Name;  // Acceder al nombre directamente
+      if (nombre === networkName) { // Comprobar si el nombre coincide
+        const net = docker.getNetwork(network.Id);
+        try {
+          await net.remove();
+          console.log(`Network ${nombre} eliminada con éxito.`);
+        } catch (error) {
+          console.error(`Error eliminando network ${nombre}: ${error.message}`);
+        }
+      }
+    }
+  }
 
 
+  //si delete_database es true, eliminar la base de datos
+
+
+
+  if (delete_database) {
+    const uri = `mongodb+srv://armor:9CtPqJqwm4IUQoI1@armorcluster.4egzv.mongodb.net/${subdomain}`;
+    const client = new MongoClient(uri, {
+    });
+
+    try {
+      await client.connect();
+      const db = client.db(subdomain); // Especifica el nombre de la base de datos explícitamente
+
+      // Eliminar todas las colecciones de la base de datos
+      const collections = await db.listCollections().toArray();
+      for (let collection of collections) {
+        await db.collection(collection.name).drop();
+        console.log(`Colección ${collection.name} eliminada con éxito.`);
+      }
+
+      // Eliminar la base de datos
+      await client.db().dropDatabase();
+      console.log(`Base de datos ${subdomain} eliminada con éxito.`);
+    }
+    catch (error) {
+      console.error(`Error eliminando la base de datos ${subdomain}: ${error.message}`);
+
+    } finally {
+
+      await client.close(); // Cerrar la conexión
+    }
+  }
+
+
+
+  //eliminar tambien de la base de datos en aplicaciones y puertos buscar por subdomain y eliminar
+
+  if (delete_database) {
+
+    const uri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003?authSource=admin`;
+    const client = new MongoClient(uri, {
+    });
+
+    try {
+      await client.connect();
+      const db = client.db("themeforest-003"); // Especifica el nombre de la base de datos explícitamente
+
+      // Buscar el _id de la aplicación
+      const collection = db.collection("applications");
+      const app = await collection.findOne({ subdomain: subdomain });
+
+      if (app) {
+        const appId = app._id;
+        console.log(`Encontrada la aplicación ${subdomain} con _id: ${appId}`);
+
+        // Eliminar la aplicación
+        await collection.deleteOne({ _id: appId });
+        console.log(`Aplicación ${subdomain} eliminada con éxito.`);
+
+        // Buscar el puerto de la aplicación
+        const portsCollection = db.collection("ports");
+        const port = await portsCollection.findOne({ subdomain: subdomain });
+
+        if (port) {
+          const portId = port._id;
+          console.log(`Encontrado el puerto de la aplicación ${subdomain} con _id: ${portId}`);
+
+          // Eliminar el puerto
+          await portsCollection.deleteOne({ _id: portId });
+          console.log(`Puerto de la aplicación ${subdomain} eliminado con éxito.`);
+        }
+      } else {
+        console.log(`No se encontró la aplicación con subdominio: ${subdomain}`);
+      }
+
+    }
+    catch (error) {
+      console.error(`Error eliminando la aplicación ${subdomain}: ${error.message}`);
+    } finally {
+      await client.close(); // Cerrar la conexión
+    }
+
+  }
+
+
+
+
+
+  // Ejecutar las funciones con manejo de errores por separado
+  try {
+    await eliminarContenedores(subdomain);
+  } catch (error) {
+    console.error(`Error en la eliminación de contenedores: ${error.message}`);
+  }
+
+  try {
+    await eliminarImagenes(subdomain);
+  } catch (error) {
+    console.error(`Error en la eliminación de imágenes: ${error.message}`);
+  }
+
+  try {
+    await eliminarNetworks(subdomain);
+  } catch (error) {
+    console.error(`Error en la eliminación de redes: ${error.message}`);
+  }
+
+  try {
+    eliminarSubdominioCloudFlare(subdomain);
+  } catch (error) {
+    console.error(`Error en la eliminación del subdominio en CloudFlare: ${error.message}`);
+  }
+
+  try {
+    eliminarArchivoDominio(subdomain);
+  } catch (error) {
+    console.error(`Error en la eliminación de archivos de dominio: ${error.message}`);
+  }
+
+  try {
+    await recargarNginx();
+  } catch (error) {
+    console.error(`Error en la recarga de Nginx: ${error.message}`);
+  }
+
+  console.log(`Proceso de eliminación de la aplicación ${subdomain} completado.`);
 }
+
+
 // Manejar la solicitud POST en la ruta '/create-app'
 app.post("/create-app", (req, res) => {
   const { subdomain, api_port, frontend_port, password, result } = req.body;
@@ -462,6 +758,35 @@ app.post("/create-app", (req, res) => {
 });
 
 
+//ruta delete app
+app.post("/delete-application", async (req, res) => {
+  const { subdomain, password, delete_database } = req.body;
+  const correctPassword = "luci2024"; // La contraseña correcta
+
+  if (password !== correctPassword) {
+    res.status(401).send("Error: Contraseña incorrecta");
+    return;
+  }
+
+  editStatus({
+    subdomain: subdomain,
+    status: 'deleting',
+  });
+
+  console.log("Se recibió un JSON:", req.body);
+
+  deleteApp(subdomain, delete_database)
+    .then(() => {
+      res.send("Aplicación eliminada exitosamente");
+    })
+    .catch((error) => {
+      console.error("Error al eliminar la aplicación:", error);
+      res.status(500).send("Error al eliminar la aplicación");
+    });
+}
+);
+
+
 app.post("/update-app", async (req, res) => {
   const { subdomain, password } = req.body;
   const correctPassword = "luci2024"; // La contraseña correcta
@@ -471,34 +796,28 @@ app.post("/update-app", async (req, res) => {
     return;
   }
 
+  // Actualizar el estado de la aplicación a 'updating'
+  editStatus({
+    subdomain: subdomain,
+    status: 'updating',
+  });
+
   console.log("Se recibió un JSON:", req.body);
 
- //para eliminar la aplicacion se necesita el subdominio. localhost:3000/api/delete-application y cuando responde creamos la aplicacion nuevamente
-
-  const deleteAppFront = await axios.post("http://localhost:3000/api/delete-application", {
-    subdomain: subdomain + "-frontend-1"
-    
-  });
-
-  console.log("deleteAppFront", deleteAppFront.data);
-
-  const deleteAppBack = await axios.post("http://localhost:3000/api/delete-application", {
-    subdomain:  subdomain + "-api-1"
-  });
-
-  //buscar en la base de datos en ports 
-
-  const uri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003?authSource=admin`;
-  const client = new MongoClient(uri, {
-  });
-
-  //hay que buscar segun el subdomain los puertos 
+  let client; // Definir client en el ámbito de la función
 
   try {
-    await client.connect();
-    const db = client.db("themeforest-003"); // Especifica el nombre de la base de datos explícitamente
+    // Llamar a deleteApp para eliminar la aplicación
+    await deleteApp(subdomain, false);
 
-    // Buscar el _id de la aplicación
+    // Conectar a la base de datos MongoDB
+    const uri = `mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003?authSource=admin`;
+    client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    await client.connect();
+    const db = client.db("themeforest-003");
+
+    // Buscar los puertos de la aplicación en la colección 'ports'
     const collection = db.collection("ports");
     const app = await collection.findOne({ subdomain: subdomain });
 
@@ -506,38 +825,38 @@ app.post("/update-app", async (req, res) => {
       const appId = app._id;
       console.log(`Encontrada la aplicación ${subdomain} con _id: ${appId}`);
 
-      //crear app utilizando los puertos encontrados
+      // Crear la aplicación utilizando los puertos encontrados
       const API_PORT = app.api_port;
       const FRONTEND_PORT = app.frontend_port;
       const result = app.result;
 
-      createApp(subdomain, API_PORT, FRONTEND_PORT, result)
-        .then(() => {
-          res.send("Aplicación actualizada exitosamente");
-        })
-        .catch((error) => {
-          console.error("Error al actualizar la aplicación:", error);
-          res.status(500).send("Error al actualizar la aplicación");
+      try {
+        await createApp(subdomain, API_PORT, FRONTEND_PORT, result);
+        editStatus({
+          subdomain: subdomain,
+          status: 'active',
         });
+        res.send("Aplicación actualizada exitosamente");
+      } catch (error) {
+        console.error("Error al crear la aplicación:", error);
+        res.status(500).send("Error al actualizar la aplicación");
+      }
     } else {
-      console.log(`No se encontró los puertos con subdominio: ${subdomain}`);
+      console.log(`No se encontraron los puertos con subdominio: ${subdomain}`);
+      res.status(404).send("No se encontraron los puertos para el subdominio");
     }
-
+  } catch (error) {
+    console.error("Error al buscar los puertos:", error);
+    res.status(500).send("Error al buscar los puertos");
+  } finally {
+    // Asegúrate de cerrar la conexión a la base de datos
+    if (client) {
+      await client.close();
+    }
   }
-    catch (error) {
-      console.error("Error al buscar los puertos:", error);
-    } finally {
-      // await client.close(); // Cerrar la conexión
-    }
-
-
-
-
-  // return res.send("Aplicación actualizada exitosamente");
-
- 
-
 });
+
+
 
 
 // Iniciar el servidor

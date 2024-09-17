@@ -1,21 +1,32 @@
 //script para clonar una base de datos funciona perfecto.
 
 const MongoClient = require('mongodb').MongoClient;
+const { ServerApiVersion } = require('mongodb');
 const async = require('async');
 
 // Configuración de las conexiones
-const sourceUri = 'mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003';
-const targetUri = 'mongodb://example_username:example_password@192.168.0.112:27017/template?authSource=admin'; // Cambia esta URI según tu configuración
+const sourceUri = 'mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003?authSource=admin';
+const targetUri = 'mongodb+srv://armor:9CtPqJqwm4IUQoI1@armorcluster.4egzv.mongodb.net/template2'; // Cambia esta URI según tu configuración
 
-
+console.log("probando")
 async function cloneDatabase() {
   try {
     // Conectar a la base de datos de origen
-    const sourceClient = await MongoClient.connect(sourceUri);
+    const sourceClient = await MongoClient.connect(sourceUri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }})
     const sourceDb = sourceClient.db();
 
     // Conectar a la base de datos de destino
-    const targetClient = await MongoClient.connect(targetUri);
+    const targetClient = await MongoClient.connect(targetUri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }});
     const targetDb = targetClient.db();
 
     // Obtener una lista de todas las colecciones en la base de datos de origen

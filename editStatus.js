@@ -36,7 +36,7 @@ async function editStatus(data) {
       }
     );
 
-    console.log("Status actualizado:", update);
+    console.log("Status actualizado:", data.status);
 
     targetClient.close();
   } catch (error) {
