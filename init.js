@@ -69,6 +69,35 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     status: 'creating',
   });
 
+
+
+  //git stash y git pull en frontend
+  
+  
+  async function gitPullFrontend() {
+    const command = `cd ./frontend && git stash && git pull`;
+    console.log("Ejecutando comando de git pull en frontend:", command);
+    const { stdout, stderr } = await exec(command);
+    console.log(`Resultado: ${stdout}`);
+    console.error(`Errores: ${stderr}`);
+    return stdout;
+  }
+
+  //git stash y git pull en api
+  async function gitPullApi() {
+    const command = `cd ./api && git stash && git pull`;
+    console.log("Ejecutando comando de git pull en api:", command);
+    const { stdout, stderr } = await exec(command);
+    console.log(`Resultado: ${stdout}`);
+    console.error(`Errores: ${stderr}`);
+    return stdout;
+  }
+
+
+  await gitPullFrontend();
+  await gitPullApi();
+  
+
   // Función para clonar el archivo de configuración de dominio por defecto
   function clonarArchivoDominioDefault(subdomain, port) {
     const archivoDefault = "domain-default.conf";
@@ -795,6 +824,12 @@ app.post("/update-app", async (req, res) => {
     res.status(401).send("Error: Contraseña incorrecta");
     return;
   }
+
+
+
+  
+
+
 
   // Actualizar el estado de la aplicación a 'updating'
   editStatus({
