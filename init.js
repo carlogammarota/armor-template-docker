@@ -17,7 +17,7 @@ const Docker = require('dockerode');
 //importar editCollection con objeto
 const { editCollection } = require('./editMongoDb.js');
 const { editStatus } = require('./editStatus.js');
-
+const { copiarYActualizarVersion } = require('./actualizarVersion.js');
 // editStatus({
 //   subdomain: 'tesla-motors',
 //   status: 'active',
@@ -50,6 +50,8 @@ function ejecutarComando(comando) {
     });
   });
 }
+
+
 
 
 
@@ -463,6 +465,8 @@ fs.readFile(localPath, "utf8", (err, data) => {
 
   cloneDatabase();
 
+  copiarYActualizarVersion(nombreSubdominio);
+
 
 }
 
@@ -484,43 +488,72 @@ hacerlo bien ordenado.
 
 // Función principal para eliminar la aplicación
 async function deleteApp(subdomain, delete_database) {
-  // Función para eliminar un subdominio en CloudFlare
-  async function eliminarSubdominioCloudFlare(subdomain) {
-    const zoneId = "22ba6192a10c766dd77527c7a101ad35";
-    const apiKey = "77543657f985f75834e7951b022638892bddc";
-    const authEmail = "carlo.gammarota@gmail.com";
-    const apiUrl = `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
 
-    try {
-      const response = await axios.get(apiUrl, {
-        headers: {
-          "X-Auth-Key": apiKey,
-          "X-Auth-Email": authEmail,
-          "Content-Type": "application/json",
-        },
-      });
-      const dnsRecords = response.data.result;
 
-      for (let record of dnsRecords) {
-        if (record.name === subdomain || record.name === `api-${subdomain}`) {
-          try {
-            await axios.delete(`${apiUrl}/${record.id}`, {
-              headers: {
-                "X-Auth-Key": apiKey,
-                "X-Auth-Email": authEmail,
-                "Content-Type": "application/json",
-              },
-            });
-            console.log(`Registro DNS eliminado: ${record.name}`);
-          } catch (error) {
-            console.error(`Error eliminando el registro DNS para ${record.name}: ${error.message}`);
-          }
-        }
-      }
-    } catch (error) {
-      console.log("Error al eliminar el registro DNS (CloudFlare)", error.message);
+
+// Eliminar registros DNS para subdominio y API-subdominio en Cloudflare
+async function eliminarSubdominioCloudFlare(subdomain) {
+  const zoneId = "22ba6192a10c766dd77527c7a101ad35"; // ID de la zona Cloudflare
+  const apiKey = "77543657f985f75834e7951b022638892bddc"; // Clave API de Cloudflare
+  const authEmail = "carlo.gammarota@gmail.com"; // Email autorizado
+  const apiUrl = `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
+
+  try {
+    // Obtener todos los registros DNS de la zona
+    const response = await axios.get(apiUrl, {
+      headers: {
+        "X-Auth-Key": apiKey,
+        "X-Auth-Email": authEmail,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const dnsRecords = response.data.result;
+
+    // Validar que se obtuvieron registros
+    if (!dnsRecords || dnsRecords.length === 0) {
+      console.log(`No se encontraron registros DNS para la zona ${zoneId}`);
+      return;
     }
+
+    console.log("Registros DNS obtenidos:", dnsRecords);
+
+    // Construir los nombres completos del subdominio y del api-subdominio
+    const subdomainName = `${subdomain}.armortemplate.site`;
+    const apiSubdomainName = `api.${subdomain}.armortemplate.site`;
+
+    // Filtrar registros del tipo "A" que coincidan con el subdominio o api-subdominio
+    const registrosAEliminar = dnsRecords.filter(
+      record => (record.name === subdomainName || record.name === apiSubdomainName) && record.type === "A"
+    );
+
+    // Validar si se encontraron registros para eliminar
+    if (registrosAEliminar.length === 0) {
+      console.log(`No se encontraron registros DNS tipo A para ${subdomainName} o ${apiSubdomainName}`);
+      return;
+    }
+
+    // Eliminar cada registro encontrado
+    for (const record of registrosAEliminar) {
+      try {
+        await axios.delete(`${apiUrl}/${record.id}`, {
+          headers: {
+            "X-Auth-Key": apiKey,
+            "X-Auth-Email": authEmail,
+            "Content-Type": "application/json",
+          },
+        });
+        console.log(`Registro DNS eliminado: ${record.name}`);
+      } catch (error) {
+        console.error(`Error eliminando el registro DNS para ${record.name}: ${error.message}`);
+      }
+    }
+  } catch (error) {
+    console.error("Error al eliminar los registros DNS de Cloudflare:", error.message);
   }
+}
+
+
 
   // Función para eliminar archivos de configuración de dominio
   function eliminarArchivoDominio(subdomain) {
@@ -632,6 +665,9 @@ async function eliminarContenedores(subdomain) {
   }
 
 
+  //funcion para eliminar la cloudflare api y front
+
+
   //si delete_database es true, eliminar la base de datos
 
 
@@ -740,7 +776,8 @@ async function eliminarContenedores(subdomain) {
   }
 
   try {
-    eliminarSubdominioCloudFlare(subdomain);
+    await eliminarSubdominioCloudFlare(subdomain);
+    await eliminarSubdominioCloudFlare("api-" + subdomain);
   } catch (error) {
     console.error(`Error en la eliminación del subdominio en CloudFlare: ${error.message}`);
   }
@@ -762,7 +799,7 @@ async function eliminarContenedores(subdomain) {
 
 
 // Manejar la solicitud POST en la ruta '/create-app'
-app.post("/create-app", (req, res) => {
+app.post("/create-app", async (req, res) => {
   const { subdomain, api_port, frontend_port, password, result } = req.body;
   const correctPassword = "luci2024"; // La contraseña correcta
 
@@ -775,15 +812,24 @@ app.post("/create-app", (req, res) => {
   //el id es el id de la aplicacion
   console.log("El id de la nueva aplicacion es", result);
 
-  createApp(subdomain, api_port, frontend_port, result)
-    .then(() => {
+  // createApp(subdomain, api_port, frontend_port, result)
+  //   .then(() => {
+  //     await ActualizarVersion(subdomain);
+  //     res.send("Aplicación creada exitosamente");
+      
+  //   })
+  //   .catch((error) => {
+  //     console.error("Error al crear la aplicación:", error);
+  //     res.status(500).send("Error al crear la aplicación");
+  //   });
 
-      res.send("Aplicación creada exitosamente");
-    })
-    .catch((error) => {
-      console.error("Error al crear la aplicación:", error);
-      res.status(500).send("Error al crear la aplicación");
-    });
+  try {
+    await createApp(subdomain, api_port, frontend_port, result);
+    res.send("Aplicación creada exitosamente");
+  } catch (error) {
+    console.error("Error al crear la aplicación:", error);
+    res.status(500).send("Error al crear la aplicación");
+  }
 });
 
 
@@ -814,6 +860,14 @@ app.post("/delete-application", async (req, res) => {
     });
 }
 );
+
+
+//funcion para actualizar la version de la aplicacion en la base de datos original de mongo, buscar primero por subdominio y luego editar coleccion application, version. hay que traer la version desde mongo armor themeforest-003 y luego actualizarla en la coleccion application de la base de datos de la aplicacion segun el subdominio
+
+
+
+
+
 
 
 app.post("/update-app", async (req, res) => {
@@ -871,6 +925,7 @@ app.post("/update-app", async (req, res) => {
           subdomain: subdomain,
           status: 'active',
         });
+        
         res.send("Aplicación actualizada exitosamente");
       } catch (error) {
         console.error("Error al crear la aplicación:", error);
