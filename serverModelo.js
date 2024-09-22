@@ -25,9 +25,9 @@ const staticOptions = {
 
 app.use(express.static(path.join(__dirname, '/dist'), staticOptions));
 
-let api_ssr = 'https://api.armortemplate.site';
+// const api_ssr = 'https://api.armortemplate.site';
 
-api_ssr = 'https://api-' + 'subdominioEdit' + '.armortemplate.site';
+ const api_ssr = 'https://api-' + 'subdominioEdit' + '.armortemplate.site';
 
 // app.use((req, res, next) => {
 //   res.setHeader('Cache-Control', 'no-store');
@@ -443,18 +443,18 @@ app.get('/', async (req, res) => {
       // Crea las metatags dinámicas
       const metaTags = `
         <title>${meta.title}</title>
-        <meta name="description" content="${meta.content}">
+        <meta name="description" content="${meta.description}">
         <meta itemprop="name" content="${meta.title}">
-        <meta itemprop="description" content="${meta.content}">
+        <meta itemprop="description" content="${meta.description}">
         <meta itemprop="image" content="${meta.img}">
         <meta property="og:url" content="${api_ssr}">
         <meta property="og:type" content="website">
         <meta property="og:title" content="${meta.title}">
-        <meta property="og:description" content="${meta.content}">
+        <meta property="og:description" content="${meta.description}">
         <meta property="og:image" content="${meta.img}">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="${meta.title}">
-        <meta name="twitter:description" content="${meta.content}">
+        <meta name="twitter:description" content="${meta.description}">
         <meta name="twitter:image" content="${meta.img}">
       `;
 
@@ -477,23 +477,104 @@ app.get('/', async (req, res) => {
   }
 
   // Si `restaurantStatus` está activo, procesa la respuesta
-  const restaurantIndexPath = path.join(__dirname, '/modulos/restaurant', 'index.html');
-  fs.readFile(restaurantIndexPath, 'utf-8', (err, html) => {
-    if (err) {
-      console.error('Error al leer el archivo index.html', err);
-      return res.status(500).send('Error interno del servidor');
-    }
+  try {
+    const settings = await axios.get(`${api_ssr}/settings`, { query: { $limit: 1 } });
+    const meta = settings.data.data[0].meta || {
+      title: 'Restaurante Default Title',
+      description: 'Descripción genérica del restaurante...',
+      img: 'https://example.com/default-restaurant.jpg',
+    };
 
-    // Envía el HTML del módulo de restaurante
-    res.send(html);
-  });
+    // Crea las metatags dinámicas
+    const metaTags = `
+      <title>${meta.title}</title>
+      <meta name="description" content="${meta.description}">
+      <meta itemprop="name" content="${meta.title}">
+      <meta itemprop="description" content="${meta.description}">
+      <meta itemprop="image" content="${meta.img}">
+      <meta property="og:url" content="${api_ssr}">
+      <meta property="og:type" content="website">
+      <meta property="og:title" content="${meta.title}">
+      <meta property="og:description" content="${meta.description}">
+      <meta property="og:image" content="${meta.img}">
+      <meta name="twitter:card" content="summary_large_image">
+      <meta name="twitter:title" content="${meta.title}">
+      <meta name="twitter:description" content="${meta.description}">
+      <meta name="twitter:image" content="${meta.img}">
+    `;
+
+    // Lee y modifica el archivo del restaurante
+    const restaurantIndexPath = path.join(__dirname, '/modulos/restaurant', 'index.html');
+    fs.readFile(restaurantIndexPath, 'utf-8', (err, html) => {
+      if (err) {
+        console.error('Error al leer el archivo index.html', err);
+        return res.status(500).send('Error interno del servidor');
+      }
+
+      // Inserta los metatags dinámicos en el HTML
+      const modifiedHtml = html.replace('<title></title>', metaTags);
+      res.send(modifiedHtml);
+    });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    return res.status(500).send('Error interno del servidor');
+  }
 });
 
 
-// Ruta principal
-app.get('*', (req, res) => {
-  res.sendFile(__dirname + '/dist/index.html');
+
+// Ruta principal que captura todas las demás rutas
+app.get('*', async (req, res) => {
+  try {
+    // Obtén las metatags desde la configuración del backend
+    const defaultMeta = {
+      title: 'Armor CMS + API: Your All-in-One Solution for Web Development',
+      content: 'Unlock the full potential of web development with Armor CMS + API...',
+      img: 'https://i.ibb.co/Wn33HgY/meta.jpg',
+    };
+
+    // Realiza la solicitud para obtener las configuraciones
+    const settings = await axios.get(`${api_ssr}/settings`, { query: { $limit: 1 } });
+    const meta = settings.data.data[0].meta || defaultMeta;
+
+    // Crea las metatags dinámicas
+    const metaTags = `
+      <title>${meta.title}</title>
+      <meta name="description" content="${meta.description}">
+      <meta itemprop="name" content="${meta.title}">
+      <meta itemprop="description" content="${meta.description}">
+      <meta itemprop="image" content="${meta.img}">
+      <meta property="og:url" content="${api_ssr}">
+      <meta property="og:type" content="website">
+      <meta property="og:title" content="${meta.title}">
+      <meta property="og:description" content="${meta.description}">
+      <meta property="og:image" content="${meta.img}">
+      <meta name="twitter:card" content="summary_large_image">
+      <meta name="twitter:title" content="${meta.title}">
+      <meta name="twitter:description" content="${meta.description}">
+      <meta name="twitter:image" content="${meta.img}">
+    `;
+
+    // Lee el archivo `index.html` del directorio `dist`
+    const indexPath = path.join(__dirname, '/dist', 'index.html');
+    fs.readFile(indexPath, 'utf-8', (err, html) => {
+      if (err) {
+        console.error('Error al leer el archivo index.html', err);
+        return res.status(500).send('Error interno del servidor');
+      }
+
+      // Reemplaza la etiqueta <title> con los metatags generados dinámicamente
+      const modifiedHtml = html.replace('<title></title>', metaTags);
+      
+      // Envía el HTML modificado
+      res.send(modifiedHtml);
+    });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    return res.status(500).send('Error interno del servidor');
+  }
 });
+
 
 //enviar mensaje
 

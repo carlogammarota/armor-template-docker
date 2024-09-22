@@ -65,6 +65,8 @@ function ejecutarComando(comando) {
 // Función para crear la aplicación
 async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
+  nombreSubdominio = nombreSubdominio.toLowerCase(); 
+
   //edit status clonando
   editStatus({
     subdomain: nombreSubdominio,
@@ -200,6 +202,8 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     subdomain: nombreSubdominio,
     status: 'cloning database',
   });
+
+  
 
   // Variable para almacenar el valor de nombreSubdominio
   const terceraVariable = nombreSubdominio;
@@ -453,12 +457,65 @@ fs.readFile(localPath, "utf8", (err, data) => {
       editCollection({
         subdomain: nombreSubdominio,
         result: result,
+
       });
 
 
       init();
     } catch (error) {
       console.log("Error: La base de datos ya existe. Actualizando aplicación.");
+
+      // Colecciones a comparar y completar
+      const collections = ["settings", "restaurant"];
+    
+      const sourceUri = "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
+      const targetUri = `mongodb+srv://armortemplate:jBFEqdXv6wvi1QbR@armorcluster.4egzv.mongodb.net/${nombreSubdominio}?authSource=admin`;
+    
+      const sourceClient = await MongoClient.connect(sourceUri);
+      const sourceDb = sourceClient.db();
+    
+      const targetClient = await MongoClient.connect(targetUri);
+      const targetDb = targetClient.db();
+    
+      for (let collection of collections) {
+        const sourceCollection = sourceDb.collection(collection);
+        const targetCollection = targetDb.collection(collection);
+    
+        const documents = await sourceCollection.find({}).toArray();
+    
+        for (let document of documents) {
+          const existingDocument = await targetCollection.findOne({ _id: document._id });
+    
+          if (existingDocument) {
+            // Solo agregar los campos que faltan
+            let fieldsToUpdate = {};
+            
+            for (let key in document) {
+              if (document.hasOwnProperty(key) && !existingDocument.hasOwnProperty(key)) {
+                fieldsToUpdate[key] = document[key];  // Agregar solo los campos que faltan
+              }
+            }
+    
+            if (Object.keys(fieldsToUpdate).length > 0) {
+              // Actualizar solo los campos faltantes
+              await targetCollection.updateOne(
+                { _id: document._id },
+                { $set: fieldsToUpdate }
+              );
+              console.log(`Documento actualizado en ${collection}: ${document._id}, campos agregados: ${Object.keys(fieldsToUpdate)}`);
+            }
+          } else {
+            // Insertar el documento completo si no existe en la colección de destino
+            await targetCollection.insertOne(document);
+            console.log(`Documento insertado en ${collection}: ${document._id}`);
+          }
+        }
+      }
+    
+      sourceClient.close();
+      targetClient.close();
+    
+      console.log("Base de datos actualizada exitosamente.");
       init();
     }
   }

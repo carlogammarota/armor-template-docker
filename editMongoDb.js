@@ -26,7 +26,11 @@ const targetUri = `mongodb+srv://armortemplate:jBFEqdXv6wvi1QbR@armorcluster.4eg
       { _id: firstDoc._id },
       {
         $set: {
-          plugins: data.result.plugins,
+          plugins: {
+            mercadopago: {
+              mercadopago_token: "",
+            },
+          },
           title: data.result.title,
           description: data.result.description,
           logo: data.result.logo,
