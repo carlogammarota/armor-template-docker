@@ -117,74 +117,81 @@ function textHTML(html) {
   // Devolver el texto extraído
   return texto;
 }
+// Definir metadatos predeterminados
+const defaultMeta = {
+  title: 'Título predeterminado',
+  description: 'Descripción predeterminada',
+  keywords: 'palabras, clave, predeterminadas',
+  author: 'Autor predeterminado',
+};
 
-//ssr de site products
+
+
+
 app.get('/products/:slug', async (req, res) => {
   let data = {};
   try {
-    // const response = await axios.get(
-    //   // `https://api.armortemplate.site/products/${req.params.id_product}`,
-    //   `${api_ssr}/products/${req.params.id_product}`,
-    // );
-    // console.log('SSR PRODUCTS', response.data.metaData);
-    // data = response.data.metaData;
-    //ahora hay que hacer un find con slug
-    const response = await axios.get(
-      `${api_ssr}/products?slug=${req.params.slug}`,
-    );
+    const response = await axios.get(`${api_ssr}/products?slug=${req.params.slug}`);
     console.log('SSR PRODUCTS', response.data.data[0]);
-    data = response.data.data[0];
+    data = response.data.data[0] || {};
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching product data:', error);
   }
-  //backup meta
-  // const metaTags = `
-  //       <title>${data.title}</title>
-  //       <meta name="description" content=" ${data.content}">
-  //       <meta itemprop="image" content="${data.img}">
-  //       <meta property="og:image" itemprop="image" content="${data.img}">
-  //       <!-- Otras metaetiquetas dinámicas -->
-  //   `;
+
+  // Valores predeterminados si alguna propiedad no está disponible
+  const metaDefaults = {
+    title: 'Título predeterminado (faltante)',
+    content: 'Descripción predeterminada (faltante)',
+    metaData: {
+      // img: '/ruta/a/imagen/predeterminada.jpg',
+    },
+  };
+
+  // Asignamos valores predeterminados si no están definidos en 'data'
+  const meta = {
+    title: data.title || metaDefaults.title,
+    content: data.content || metaDefaults.content,
+    img: (data.metaData && data.metaData.img) || metaDefaults.metaData.img,
+  };
 
   const metaTags = `
-        <!-- HTML Meta Tags -->
-  <title>${data.title}</title>
-  <meta name="description" content="${data.content}">
+    <!-- HTML Meta Tags -->
+    <title>${meta.title}</title>
+    <meta name="description" content="${meta.content}">
 
-  <!-- Google / Search Engine Tags -->
-  <meta itemprop="name" content="${data.title}">
-  <meta itemprop="description" content="${data.content}">
-  <meta itemprop="image" content="${data.metaData.img}">
+    <!-- Google / Search Engine Tags -->
+    <meta itemprop="name" content="${meta.title}">
+    <meta itemprop="description" content="${meta.content}">
+    <meta itemprop="image" content="${meta.img}">
 
-  <!-- Facebook Meta Tags -->
-  <meta property="og:url" content="${api_ssr}/products/${req.params.id_product}">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="${data.title}">
-  <meta property="og:description" content="${data.content}">
-  <meta property="og:image" content="${data.metaData.img}">
+    <!-- Facebook Meta Tags -->
+    <meta property="og:url" content="${api_ssr}/products/${req.params.slug}">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="${meta.title}">
+    <meta property="og:description" content="${meta.content}">
+    <meta property="og:image" content="${meta.img}">
 
-  <!-- Twitter Meta Tags -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:site" content="@nombre_de_usuario_del_sitio">
-  <meta name="twitter:site:id" content="ID_de_Twitter_del_sitio">
-  <meta name="twitter:title" content="${data.title}">
-  <meta name="twitter:description" content="${data.content}">
-  <meta name="twitter:image" content="${data.metaData.img}">
-    `;
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@nombre_de_usuario_del_sitio">
+    <meta name="twitter:site:id" content="ID_de_Twitter_del_sitio">
+    <meta name="twitter:title" content="${meta.title}">
+    <meta name="twitter:description" content="${meta.content}">
+    <meta name="twitter:image" content="${meta.img}">
+  `;
 
-  // Lee el archivo "index.html"
+  // Ruta al archivo "index.html"
   const indexPath = path.join(__dirname, '/dist', 'index.html');
   fs.readFile(indexPath, 'utf-8', (err, html) => {
-    const modifiedHtml = html.replace('<title></title>', `${metaTags}`);
     if (err) {
       console.error('Error al leer el archivo index.html', err);
-      res.send(modifiedHtml);
-      // return res.status(500).send('Error interno del servidor');
+      return res.status(500).send('Error interno del servidor');
     }
 
-    // Inserta las metaetiquetas dinámicas en el archivo "index.html" creadas en ej objeto metaTags
+    // Reemplaza el título vacío con las metaetiquetas generadas
+    const modifiedHtml = html.replace('<title></title>', metaTags);
 
-    // Envía el archivo "index.html" modificado con las metaetiquetas
+    // Envía el archivo "index.html" modificado
     res.send(modifiedHtml);
   });
 });

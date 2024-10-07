@@ -18,6 +18,9 @@ const Docker = require('dockerode');
 const { editCollection } = require('./editMongoDb.js');
 const { editStatus } = require('./editStatus.js');
 const { copiarYActualizarVersion } = require('./actualizarVersion.js');
+const cors = require('cors');
+
+const qr = require('qr-image');
 // editStatus({
 //   subdomain: 'tesla-motors',
 //   status: 'active',
@@ -33,6 +36,7 @@ const PORT = 3131;
 
 // Configurar bodyParser para manejar solicitudes JSON
 app.use(bodyParser.json());
+app.use(cors());
 
 // Función para ejecutar comandos de shell
 function ejecutarComando(comando) {
@@ -65,7 +69,7 @@ function ejecutarComando(comando) {
 // Función para crear la aplicación
 async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
-  nombreSubdominio = nombreSubdominio.toLowerCase(); 
+  nombreSubdominio = nombreSubdominio.toLowerCase();
 
   //edit status clonando
   editStatus({
@@ -76,8 +80,8 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
 
   //git stash y git pull en frontend
-  
-  
+
+
   async function gitPullFrontend() {
     const command = `cd ./frontend && git stash && git pull`;
     console.log("Ejecutando comando de git pull en frontend:", command);
@@ -100,7 +104,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
 
   await gitPullFrontend();
   await gitPullApi();
-  
+
 
   // Función para clonar el archivo de configuración de dominio por defecto
   function clonarArchivoDominioDefault(subdomain, port) {
@@ -203,7 +207,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
     status: 'cloning database',
   });
 
-  
+
 
   // Variable para almacenar el valor de nombreSubdominio
   const terceraVariable = nombreSubdominio;
@@ -467,35 +471,35 @@ fs.readFile(localPath, "utf8", (err, data) => {
 
       // Colecciones a comparar y completar
       const collections = ["settings", "restaurant"];
-    
+
       const sourceUri = "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
       const targetUri = `mongodb+srv://armortemplate:jBFEqdXv6wvi1QbR@armorcluster.4egzv.mongodb.net/${nombreSubdominio}?authSource=admin`;
-    
+
       const sourceClient = await MongoClient.connect(sourceUri);
       const sourceDb = sourceClient.db();
-    
+
       const targetClient = await MongoClient.connect(targetUri);
       const targetDb = targetClient.db();
-    
+
       for (let collection of collections) {
         const sourceCollection = sourceDb.collection(collection);
         const targetCollection = targetDb.collection(collection);
-    
+
         const documents = await sourceCollection.find({}).toArray();
-    
+
         for (let document of documents) {
           const existingDocument = await targetCollection.findOne({ _id: document._id });
-    
+
           if (existingDocument) {
             // Solo agregar los campos que faltan
             let fieldsToUpdate = {};
-            
+
             for (let key in document) {
               if (document.hasOwnProperty(key) && !existingDocument.hasOwnProperty(key)) {
                 fieldsToUpdate[key] = document[key];  // Agregar solo los campos que faltan
               }
             }
-    
+
             if (Object.keys(fieldsToUpdate).length > 0) {
               // Actualizar solo los campos faltantes
               await targetCollection.updateOne(
@@ -511,10 +515,10 @@ fs.readFile(localPath, "utf8", (err, data) => {
           }
         }
       }
-    
+
       sourceClient.close();
       targetClient.close();
-    
+
       console.log("Base de datos actualizada exitosamente.");
       init();
     }
@@ -548,67 +552,67 @@ async function deleteApp(subdomain, delete_database) {
 
 
 
-// Eliminar registros DNS para subdominio y API-subdominio en Cloudflare
-async function eliminarSubdominioCloudFlare(subdomain) {
-  const zoneId = "22ba6192a10c766dd77527c7a101ad35"; // ID de la zona Cloudflare
-  const apiKey = "77543657f985f75834e7951b022638892bddc"; // Clave API de Cloudflare
-  const authEmail = "carlo.gammarota@gmail.com"; // Email autorizado
-  const apiUrl = `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
+  // Eliminar registros DNS para subdominio y API-subdominio en Cloudflare
+  async function eliminarSubdominioCloudFlare(subdomain) {
+    const zoneId = "22ba6192a10c766dd77527c7a101ad35"; // ID de la zona Cloudflare
+    const apiKey = "77543657f985f75834e7951b022638892bddc"; // Clave API de Cloudflare
+    const authEmail = "carlo.gammarota@gmail.com"; // Email autorizado
+    const apiUrl = `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
 
-  try {
-    // Obtener todos los registros DNS de la zona
-    const response = await axios.get(apiUrl, {
-      headers: {
-        "X-Auth-Key": apiKey,
-        "X-Auth-Email": authEmail,
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      // Obtener todos los registros DNS de la zona
+      const response = await axios.get(apiUrl, {
+        headers: {
+          "X-Auth-Key": apiKey,
+          "X-Auth-Email": authEmail,
+          "Content-Type": "application/json",
+        },
+      });
 
-    const dnsRecords = response.data.result;
+      const dnsRecords = response.data.result;
 
-    // Validar que se obtuvieron registros
-    if (!dnsRecords || dnsRecords.length === 0) {
-      console.log(`No se encontraron registros DNS para la zona ${zoneId}`);
-      return;
-    }
-
-    console.log("Registros DNS obtenidos:", dnsRecords);
-
-    // Construir los nombres completos del subdominio y del api-subdominio
-    const subdomainName = `${subdomain}.armortemplate.site`;
-    const apiSubdomainName = `api.${subdomain}.armortemplate.site`;
-
-    // Filtrar registros del tipo "A" que coincidan con el subdominio o api-subdominio
-    const registrosAEliminar = dnsRecords.filter(
-      record => (record.name === subdomainName || record.name === apiSubdomainName) && record.type === "A"
-    );
-
-    // Validar si se encontraron registros para eliminar
-    if (registrosAEliminar.length === 0) {
-      console.log(`No se encontraron registros DNS tipo A para ${subdomainName} o ${apiSubdomainName}`);
-      return;
-    }
-
-    // Eliminar cada registro encontrado
-    for (const record of registrosAEliminar) {
-      try {
-        await axios.delete(`${apiUrl}/${record.id}`, {
-          headers: {
-            "X-Auth-Key": apiKey,
-            "X-Auth-Email": authEmail,
-            "Content-Type": "application/json",
-          },
-        });
-        console.log(`Registro DNS eliminado: ${record.name}`);
-      } catch (error) {
-        console.error(`Error eliminando el registro DNS para ${record.name}: ${error.message}`);
+      // Validar que se obtuvieron registros
+      if (!dnsRecords || dnsRecords.length === 0) {
+        console.log(`No se encontraron registros DNS para la zona ${zoneId}`);
+        return;
       }
+
+      console.log("Registros DNS obtenidos:", dnsRecords);
+
+      // Construir los nombres completos del subdominio y del api-subdominio
+      const subdomainName = `${subdomain}.armortemplate.site`;
+      const apiSubdomainName = `api.${subdomain}.armortemplate.site`;
+
+      // Filtrar registros del tipo "A" que coincidan con el subdominio o api-subdominio
+      const registrosAEliminar = dnsRecords.filter(
+        record => (record.name === subdomainName || record.name === apiSubdomainName) && record.type === "A"
+      );
+
+      // Validar si se encontraron registros para eliminar
+      if (registrosAEliminar.length === 0) {
+        console.log(`No se encontraron registros DNS tipo A para ${subdomainName} o ${apiSubdomainName}`);
+        return;
+      }
+
+      // Eliminar cada registro encontrado
+      for (const record of registrosAEliminar) {
+        try {
+          await axios.delete(`${apiUrl}/${record.id}`, {
+            headers: {
+              "X-Auth-Key": apiKey,
+              "X-Auth-Email": authEmail,
+              "Content-Type": "application/json",
+            },
+          });
+          console.log(`Registro DNS eliminado: ${record.name}`);
+        } catch (error) {
+          console.error(`Error eliminando el registro DNS para ${record.name}: ${error.message}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error al eliminar los registros DNS de Cloudflare:", error.message);
     }
-  } catch (error) {
-    console.error("Error al eliminar los registros DNS de Cloudflare:", error.message);
   }
-}
 
 
 
@@ -646,39 +650,39 @@ async function eliminarSubdominioCloudFlare(subdomain) {
     }
   }
 
-// Función para eliminar los contenedores
-async function eliminarContenedores(subdomain) {
-  const docker = new Docker();
-  const contenedores = await docker.listContainers({ all: true }); // Incluye contenedores detenidos
+  // Función para eliminar los contenedores
+  async function eliminarContenedores(subdomain) {
+    const docker = new Docker();
+    const contenedores = await docker.listContainers({ all: true }); // Incluye contenedores detenidos
 
-  for (let contenedor of contenedores) {
-    for (let nombre of contenedor.Names) {
-      if (nombre.includes(subdomain)) {
-        const container = docker.getContainer(contenedor.Id);
-        try {
-          // Primero intenta detener el contenedor (aunque esté detenido)
+    for (let contenedor of contenedores) {
+      for (let nombre of contenedor.Names) {
+        if (nombre.includes(subdomain)) {
+          const container = docker.getContainer(contenedor.Id);
           try {
-            await container.stop();
-            console.log(`Contenedor ${nombre} detenido con éxito.`);
-          } catch (stopError) {
-            // Si el contenedor ya está detenido, no hace falta detenerlo de nuevo
-            console.log(`Contenedor ${nombre} ya estaba detenido.`);
-          }
+            // Primero intenta detener el contenedor (aunque esté detenido)
+            try {
+              await container.stop();
+              console.log(`Contenedor ${nombre} detenido con éxito.`);
+            } catch (stopError) {
+              // Si el contenedor ya está detenido, no hace falta detenerlo de nuevo
+              console.log(`Contenedor ${nombre} ya estaba detenido.`);
+            }
 
-          // Luego intenta eliminar el contenedor
-          try {
-            await container.remove({ force: true }); // Forzar la eliminación del contenedor
-            console.log(`Contenedor ${nombre} eliminado con éxito.`);
-          } catch (removeError) {
-            console.error(`Error eliminando contenedor ${nombre}: ${removeError.message}`);
+            // Luego intenta eliminar el contenedor
+            try {
+              await container.remove({ force: true }); // Forzar la eliminación del contenedor
+              console.log(`Contenedor ${nombre} eliminado con éxito.`);
+            } catch (removeError) {
+              console.error(`Error eliminando contenedor ${nombre}: ${removeError.message}`);
+            }
+          } catch (error) {
+            console.error(`Error al manejar contenedor ${nombre}: ${error.message}`);
           }
-        } catch (error) {
-          console.error(`Error al manejar contenedor ${nombre}: ${error.message}`);
         }
       }
     }
   }
-}
 
 
   // Función para eliminar las imágenes
@@ -873,7 +877,7 @@ app.post("/create-app", async (req, res) => {
   //   .then(() => {
   //     await ActualizarVersion(subdomain);
   //     res.send("Aplicación creada exitosamente");
-      
+
   //   })
   //   .catch((error) => {
   //     console.error("Error al crear la aplicación:", error);
@@ -938,7 +942,7 @@ app.post("/update-app", async (req, res) => {
 
 
 
-  
+
 
 
 
@@ -982,7 +986,7 @@ app.post("/update-app", async (req, res) => {
           subdomain: subdomain,
           status: 'active',
         });
-        
+
         res.send("Aplicación actualizada exitosamente");
       } catch (error) {
         console.error("Error al crear la aplicación:", error);
@@ -1002,6 +1006,25 @@ app.post("/update-app", async (req, res) => {
     }
   }
 });
+
+
+
+//necesito una ruta que me genere un codigo qr, con el subdominio de la aplicacion, para que el usuario pueda escanearlo y acceder a la aplicacion.
+//usar la libreria qr-image, guardar el qr en la carpeta public y devolver la url del qr en la respuesta.
+
+app.get('/qr/:subdomain', (req, res) => {
+  const subdomain = req.params.subdomain;
+
+  // Generar el código QR con el subdominio y tipo PNG
+  const qrCode = qr.image(`https://${subdomain}.armortemplate.site`, { type: 'png', size: 50 });
+
+  // Establecer el header para indicar que es una imagen PNG
+  res.setHeader('Content-Type', 'image/png');
+
+  // Enviar la imagen QR al cliente
+  qrCode.pipe(res);
+});
+
 
 
 
