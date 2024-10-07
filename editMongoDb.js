@@ -64,7 +64,7 @@ const targetUri = `mongodb+srv://armortemplate:jBFEqdXv6wvi1QbR@armorcluster.4eg
 //   title: 'Sitio Web de Tesla Motors',
 //   description: 'Introducing Armor Template, a robust and feature-rich web theme that combines the power of modern technologies to kickstart your next online project. Crafted with Vue3, Vuex, Tailwind CSS, Express.js (SSR), Node.js, and Socket.io, Feathers.js (rest) this versatile template offers everything you need to create a dynamic web presence.',
 //   theme: 'dark',
-//   link: 'https://tesla-motors.armortemplate.site',
+//   link: 'https://tesla-motors.armortemplate.com',
 //   status: 'creating',
 //   createdAt: '2024-08-06T07:12:23.484Z',
 //   updatedAt: '2024-08-06T07:12:23.484Z',

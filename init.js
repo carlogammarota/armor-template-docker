@@ -109,7 +109,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   // Función para clonar el archivo de configuración de dominio por defecto
   function clonarArchivoDominioDefault(subdomain, port) {
     const archivoDefault = "domain-default.conf";
-    const nuevoNombre = `${subdomain}.armortemplate.site`;
+    const nuevoNombre = `${subdomain}.armortemplate.com`;
     const rutaDestino = path.join("/etc/nginx/sites-enabled", nuevoNombre);
 
 
@@ -248,7 +248,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
       }
 
       let result = data.replace(/subdominioEdit/g, subdominioNuevo);
-      // const api_ssr = 'https://api.armortemplate.site'; asi esta en el archivo serverModelo.js
+      // const api_ssr = 'https://api.armortemplate.com'; asi esta en el archivo serverModelo.js
 
       fs.writeFile("./frontend/server.js", result, "utf8", (err) => {
         if (err) {
@@ -266,7 +266,7 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   //const nueva_ip = "http://192.168.1.4:" + API_PORT;
   //produccion
 
-  const nueva_ip = "https://api-" + nombreSubdominio + ".armortemplate.site";
+  const nueva_ip = "https://api-" + nombreSubdominio + ".armortemplate.com";
 
 
 
@@ -336,7 +336,7 @@ fs.readFile(localPath, "utf8", (err, data) => {
     return;
   }
 
-  let result = data.replace(/https:\/\/api.armortemplate.site/g, `https://api-${nombreSubdominio}.armortemplate.site`);
+  let result = data.replace(/https:\/\/api.armortemplate.com/g, `https://api-${nombreSubdominio}.armortemplate.com`);
 
   // Guardar los cambios en el archivo
   fs.writeFile(localPath, result, "utf8", (err) => {
@@ -580,8 +580,8 @@ async function deleteApp(subdomain, delete_database) {
       console.log("Registros DNS obtenidos:", dnsRecords);
 
       // Construir los nombres completos del subdominio y del api-subdominio
-      const subdomainName = `${subdomain}.armortemplate.site`;
-      const apiSubdomainName = `api.${subdomain}.armortemplate.site`;
+      const subdomainName = `${subdomain}.armortemplate.com`;
+      const apiSubdomainName = `api.${subdomain}.armortemplate.com`;
 
       // Filtrar registros del tipo "A" que coincidan con el subdominio o api-subdominio
       const registrosAEliminar = dnsRecords.filter(
@@ -618,8 +618,8 @@ async function deleteApp(subdomain, delete_database) {
 
   // Función para eliminar archivos de configuración de dominio
   function eliminarArchivoDominio(subdomain) {
-    const archivoFrontend = `${subdomain}.armortemplate.site`;
-    const archivoApi = `api-${subdomain}.armortemplate.site`;
+    const archivoFrontend = `${subdomain}.armortemplate.com`;
+    const archivoApi = `api-${subdomain}.armortemplate.com`;
     const rutaFrontend = path.join("/etc/nginx/sites-enabled", archivoFrontend);
     const rutaApi = path.join("/etc/nginx/sites-enabled", archivoApi);
 
@@ -1016,7 +1016,7 @@ app.get('/qr/:subdomain', (req, res) => {
   const subdomain = req.params.subdomain;
 
   // Generar el código QR con el subdominio y tipo PNG
-  const qrCode = qr.image(`https://${subdomain}.armortemplate.site`, { type: 'png', size: 50 });
+  const qrCode = qr.image(`https://${subdomain}.armortemplate.com`, { type: 'png', size: 50 });
 
   // Establecer el header para indicar que es una imagen PNG
   res.setHeader('Content-Type', 'image/png');

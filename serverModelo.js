@@ -25,9 +25,9 @@ const staticOptions = {
 
 app.use(express.static(path.join(__dirname, '/dist'), staticOptions));
 
-// const api_ssr = 'https://api.armortemplate.site';
+// const api_ssr = 'https://api.armortemplate.com';
 
- const api_ssr = 'https://api-' + 'subdominioEdit' + '.armortemplate.site';
+ const api_ssr = 'https://api-' + 'subdominioEdit' + '.armortemplate.com';
 
 // app.use((req, res, next) => {
 //   res.setHeader('Cache-Control', 'no-store');
@@ -202,7 +202,7 @@ app.get('/events/:id_event', async (req, res) => {
   let data = {};
   try {
     const response = await axios.get(
-      // `https://api.armortemplate.site/events/${req.params.id_event}`,
+      // `https://api.armortemplate.com/events/${req.params.id_event}`,
       `${api_ssr}/events/${req.params.id_event}`,
     );
     console.log('SSR EVENTOS', response.data.metaData);
@@ -262,7 +262,7 @@ app.get('/blog/:id_blog', async (req, res) => {
   let data = {};
   try {
     const response = await axios.get(
-      // `https://api.armortemplate.site/blogs/${req.params.id_blog}`,
+      // `https://api.armortemplate.com/blogs/${req.params.id_blog}`,
       `${api_ssr}/blogs/${req.params.id_blog}`,
     );
     console.log('SSR BLOG', response.data.metaData);
@@ -323,7 +323,7 @@ app.get('/users/:id_user', async (req, res) => {
   let data = {};
   try {
     const response = await axios.get(
-      // `https://api.armortemplate.site/users/${req.params.id_user}`,
+      // `https://api.armortemplate.com/users/${req.params.id_user}`,
       `${api_ssr}/users/${req.params.id_user}`,
     );
 

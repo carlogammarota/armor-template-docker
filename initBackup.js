@@ -23,7 +23,7 @@ async function createApp(defaultChange, API_PORT, FRONTEND_PORT) {
 
     function clonarArchivoDominioDefault(subdomain, port) {
         const archivoDefault = "domain-default.conf";
-        const nuevoNombre = `${subdomain}.armortemplate.site`;
+        const nuevoNombre = `${subdomain}.armortemplate.com`;
         const rutaDestino = path.join('/etc/nginx/sites-enabled', nuevoNombre);
       
         // Leemos el archivo domain-default.conf
