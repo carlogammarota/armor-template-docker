@@ -208,6 +208,33 @@ async function createApp(nombreSubdominio, API_PORT, FRONTEND_PORT, result) {
   });
 
 
+  //necesito editar el archivo socketModelo.js y cambiar la ip por la nueva ip de la aplicacion donde dice https://armortemplate.com cambiar por https://nombreSubdominio.armortemplate.com
+  //luego de editar el archivo, copiarlo en la carpeta /frontend/src/sockets/socket.js
+  
+  const socketModeloPath = "./socketModelo.js";
+  fs.readFile(socketModeloPath, "utf8", (err, data) => {
+
+    if (err) {
+      console.error("Error al leer el archivo:", err);
+      return;
+    }
+  }
+  );
+
+  let result = data.replace(/armortemplate/g, nombreSubdominio);
+  // const api_ssr = 'https://api.armortemplate.com'; asi esta en el archivo serverModelo.js
+
+  fs.writeFile("./frontend/src/sockets/socket.js", result, "utf8", (err) => {
+    if (err) {
+      console.error("Error al escribir el archivo:", err);
+      return;
+    }
+    console.log("Archivo guardado exitosamente.");
+  });
+
+  
+
+
 
   // Variable para almacenar el valor de nombreSubdominio
   const terceraVariable = nombreSubdominio;
@@ -470,7 +497,8 @@ fs.readFile(localPath, "utf8", (err, data) => {
       console.log("Error: La base de datos ya existe. Actualizando aplicación.");
 
       // Colecciones a comparar y completar
-      const collections = ["settings", "restaurant"];
+      // const collections = ["settings", "restaurant", "products"];
+      const collections = ["settings"];
 
       const sourceUri = "mongodb+srv://admin-web:stuart@cluster0.podle1o.mongodb.net/themeforest-003";
       const targetUri = `mongodb+srv://armortemplate:jBFEqdXv6wvi1QbR@armorcluster.4egzv.mongodb.net/${nombreSubdominio}?authSource=admin`;
@@ -982,10 +1010,14 @@ app.post("/update-app", async (req, res) => {
 
       try {
         await createApp(subdomain, API_PORT, FRONTEND_PORT, result);
+        //restart nginx
+        await exec("sudo systemctl reload nginx");
         editStatus({
           subdomain: subdomain,
           status: 'active',
         });
+
+        
 
         res.send("Aplicación actualizada exitosamente");
       } catch (error) {
